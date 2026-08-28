@@ -54,15 +54,25 @@ func runScan(args []string) error {
 
 func printSummary(s graph.Snapshot) {
 	counts := map[graph.NodeKind]int{}
+	dependencyCount := 0
 	for _, n := range s.Nodes {
 		counts[n.Kind]++
 	}
+	for _, edge := range s.Edges {
+		if edge.Kind == graph.EdgeDependsOn {
+			dependencyCount++
+		}
+	}
+	cycles := graph.DependencyCycles(s)
+
 	fmt.Println("AI Project Framework — structure scan")
 	fmt.Println("root:", s.Root)
 	fmt.Printf("git: %t (%d changed files)\n", s.Git.Available, len(s.Git.ChangedFiles))
 	fmt.Printf("projects: %d\n", counts[graph.NodeProject])
 	fmt.Printf("modules: %d\n", counts[graph.NodeModule])
 	fmt.Printf("files: %d\n", counts[graph.NodeFile])
+	fmt.Printf("declared local dependencies: %d\n", dependencyCount)
+	fmt.Printf("project dependency cycles: %d\n", len(cycles))
 
 	if counts[graph.NodeProject] > 0 {
 		fmt.Println("\nprojects:")
@@ -70,6 +80,20 @@ func printSummary(s graph.Snapshot) {
 			if n.Kind == graph.NodeProject {
 				fmt.Printf("  - %s [%s] %s (%s)\n", n.Name, n.Metadata["ecosystems"], n.Path, n.Confidence)
 			}
+		}
+	}
+	if dependencyCount > 0 {
+		fmt.Println("\nlocal dependencies:")
+		for _, edge := range s.Edges {
+			if edge.Kind == graph.EdgeDependsOn {
+				fmt.Printf("  - %s -> %s\n", edge.From, edge.To)
+			}
+		}
+	}
+	if len(cycles) > 0 {
+		fmt.Println("\ndependency cycles:")
+		for _, cycle := range cycles {
+			fmt.Printf("  - %v\n", cycle)
 		}
 	}
 	if counts[graph.NodeModule] > 0 {
