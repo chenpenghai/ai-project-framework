@@ -2,9 +2,10 @@ package graph
 
 import "sort"
 
-// AffectedProjects maps changed files to their owning projects and follows
-// reverse declared dependency edges. It does not assume that every repository
-// file affects every project.
+// AffectedProjects maps changed files to their owning projects, includes
+// projects explicitly governed by changed configuration files, and then
+// follows reverse declared dependency edges. It does not assume that every
+// repository file affects every project.
 func AffectedProjects(snapshot Snapshot, changedFiles []string) []string {
 	projects := map[string]bool{}
 	for _, node := range snapshot.Nodes {
@@ -14,15 +15,26 @@ func AffectedProjects(snapshot Snapshot, changedFiles []string) []string {
 	}
 
 	parent := map[string]string{}
+	governed := map[string][]string{}
 	for _, edge := range snapshot.Edges {
-		if edge.Kind == EdgeContains {
+		switch edge.Kind {
+		case EdgeContains:
 			parent[edge.To] = edge.From
+		case EdgeGoverns:
+			if projects[edge.To] {
+				governed[edge.From] = append(governed[edge.From], edge.To)
+			}
 		}
 	}
 
 	affected := map[string]bool{}
 	for _, path := range changedFiles {
-		current := "file:" + path
+		fileID := "file:" + path
+		for _, id := range governed[fileID] {
+			affected[id] = true
+		}
+
+		current := fileID
 		seen := map[string]bool{}
 		for current != "" && !seen[current] {
 			seen[current] = true
