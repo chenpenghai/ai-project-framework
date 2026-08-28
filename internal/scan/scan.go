@@ -134,6 +134,7 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: "file:" + rel, Kind: graph.EdgeContains, Source: "derived-containment", Confidence: graph.ConfidenceDerived})
 	}
 
+	snapshot.Edges = append(snapshot.Edges, discoverDeclaredDependencies(abs, projects)...)
 	sortSnapshot(&snapshot)
 	return snapshot, nil
 }
@@ -502,6 +503,9 @@ func sortSnapshot(s *graph.Snapshot) {
 		if s.Edges[i].To != s.Edges[j].To {
 			return s.Edges[i].To < s.Edges[j].To
 		}
-		return s.Edges[i].Kind < s.Edges[j].Kind
+		if s.Edges[i].Kind != s.Edges[j].Kind {
+			return s.Edges[i].Kind < s.Edges[j].Kind
+		}
+		return s.Edges[i].Source < s.Edges[j].Source
 	})
 }
