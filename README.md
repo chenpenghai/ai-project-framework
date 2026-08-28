@@ -4,6 +4,30 @@ A general-purpose development framework for AI-assisted software projects.
 
 The framework exists to serve the project, not the other way around. Its purpose is to help any coding model produce better code faster, with less unnecessary context and less structural drift.
 
+## Important: this repository is the framework source
+
+This repository is where APF itself is developed, tested, and released. Users should not clone it and build their application inside this source tree.
+
+Consumer projects are generated separately and start with no application code, no selected language, and no prescribed architecture.
+
+The first consumer-project command is:
+
+```bash
+go run ./cmd/apf new /path/to/my-project
+```
+
+The generated project currently contains only the minimum framework control surface:
+
+```text
+my-project/
+├── .apf/
+│   └── project.yaml
+├── .gitignore
+└── AGENTS.md
+```
+
+Framework implementation source, tests, research documents, and internal tooling are never copied into the consumer project.
+
 ## Goals
 
 - Keep normal development fast; framework overhead must stay small.
@@ -18,16 +42,19 @@ The framework exists to serve the project, not the other way around. Its purpose
 
 ## Current prototype
 
-The first executable slice is intentionally small: a zero-dependency repository scanner and Structure Graph fact layer.
+The executable prototype currently has two deliberately small surfaces:
 
 ```bash
+go run ./cmd/apf new /path/to/my-project
 go run ./cmd/apf scan /path/to/repository
 go run ./cmd/apf scan --json /path/to/repository
 ```
 
-It currently detects repository files, Git changed files, common project/package manifests, explicit `MODULE.md` declarations, and deterministic containment relationships. Unsupported languages degrade to the universal filesystem/Git baseline instead of failing.
+`apf new` creates an empty consumer project without application code or framework source.
 
-The Go implementation is an implementation detail of the framework tool itself; scanned projects do not need to use Go.
+`apf scan` builds the current Structure Graph fact layer. It detects repository files, Git changed files, common project/package manifests, explicit `MODULE.md` declarations, declared local dependencies, workspace governance relationships, deterministic containment, dependency cycles, and affected projects. Unsupported languages degrade to the universal filesystem/Git baseline instead of failing.
+
+The Go implementation is an implementation detail of the framework tool itself; consumer projects do not need to use Go.
 
 See `docs/STRUCTURE-GRAPH.md` for the current graph semantics and `docs/FOUNDATIONS.md` for durable design constraints.
 
