@@ -8,7 +8,7 @@ The graph is designed to grow across these levels without assuming that director
 
 `Repository -> Project/Package -> Logical Module -> File -> Symbol`
 
-The first scanner slice implements repository, project/package, explicit logical module, and file nodes. Symbol and dependency adapters come later.
+The current scanner slice implements repository, project/package, explicit logical module, and file nodes. Symbol adapters come later.
 
 ## Confidence is part of the data
 
@@ -35,6 +35,7 @@ Reliable evidence may come from sources such as:
 - Git and the filesystem,
 - native project manifests,
 - explicit `MODULE.md` declarations,
+- native dependency declarations,
 - language adapters that can resolve imports or visibility deterministically.
 
 Hypotheses may later come from signals such as directory cohesion, naming, change coupling, or clustering. Hypotheses are guidance only and must never silently become hard module boundaries.
@@ -67,7 +68,28 @@ pure:
 ---
 ```
 
-Only `module` is currently read by the scanner. The remaining fields are placeholders for later milestones and must not be implemented until their behavior is justified.
+Only `module` is currently read by the scanner, and only from the opening frontmatter block. The remaining fields are placeholders for later milestones and must not be implemented until their behavior is justified.
+
+## Declared dependency edges
+
+The scanner now derives repository-local `depends_on` edges from native manifests when both ends can be resolved with high confidence.
+
+Current adapters:
+
+- Go: `go.mod` `require` entries are matched to other repository-local Go module declarations.
+- Node: `package.json` dependency sections are matched to other repository-local package names.
+
+External dependencies remain outside the repository Structure Graph for now. A manifest declaration is evidence of a project-level dependency; source import analysis will later refine relationships where useful.
+
+Project dependency cycles are computed from these local edges. At this milestone they are diagnostic only, not enforcement.
+
+## Affected projects
+
+Changed files are mapped to their nearest owning project through containment edges. The framework then walks reverse local dependency edges to derive the project-level affected closure.
+
+This is the first concrete use of the Structure Graph to reduce work: a change should not imply that every project in the repository must be verified.
+
+The current changed-file source is the local Git working tree/index. Base-commit/PR-range analysis will be added later before this becomes a CI verification primitive.
 
 ## Scanner behavior
 
@@ -81,7 +103,9 @@ Only `module` is currently read by the scanner. The remaining fields are placeho
 6. uses high-confidence fallback indicators for ecosystems whose projects do not always have one canonical manifest;
 7. detects explicit `MODULE.md` boundaries;
 8. derives nearest-parent containment edges;
-9. emits either a compact summary or a deterministic JSON snapshot.
+9. derives high-confidence repository-local project dependencies from native manifests;
+10. reports project dependency cycles and affected projects;
+11. emits either a compact summary or a deterministic JSON snapshot.
 
 Unsupported languages and unknown repository shapes are valid states. The scanner should report what it knows and leave the rest unknown.
 
@@ -97,4 +121,4 @@ Do not add yet:
 - architecture scoring,
 - a large configuration language.
 
-The next step is to validate this fact layer against real repositories, then add import/project adapters only where they materially improve structural accuracy.
+The next step is to validate the graph against real repositories, then add source import adapters only where they materially improve module/dependency accuracy.
