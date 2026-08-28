@@ -35,6 +35,17 @@ Behavior:
 
 Turn state is stored under Codex `PLUGIN_DATA`, not inside the user's repository.
 
+## Install for a real Codex test
+
+The repository includes `.agents/plugins/marketplace.json`, so it can be added directly as a development marketplace:
+
+```text
+codex plugin marketplace add chenpenghai/ai-project-framework
+codex plugin add apf-prototype@apf-development
+```
+
+Restart Codex after installation. Plugin hooks still require Codex's normal hook trust review before they run.
+
 ## Run adapter tests
 
 ```text
