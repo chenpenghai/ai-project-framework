@@ -1,10 +1,10 @@
 # APF Prototype
 
-This is the smallest experiment for the current APF idea.
+This directory is the smallest experiment for the current APF idea and is also a self-contained Codex plugin prototype.
 
-It is deliberately host-neutral. It does not create or modify files in the user's project.
+It does not create or modify framework files in the user's project.
 
-The prototype contains three shared guidance events:
+## Shared guidance
 
 ```text
 BEFORE_CHANGE  -> guidance/before-change.md
@@ -12,21 +12,37 @@ ON_PROBLEM     -> guidance/on-problem.md
 BEFORE_FINISH  -> guidance/before-finish.md
 ```
 
-A host adapter should do only two things:
+The Codex adapter does not copy this guidance. It loads these files at runtime.
 
-1. detect/map the relevant host lifecycle event;
-2. deliver the matching shared guidance to the coding AI.
+## Codex prototype
 
-Do not copy the guidance into each adapter.
+```text
+prototype/
+├── .codex-plugin/plugin.json
+├── guidance/
+├── hooks/
+│   ├── hooks.json
+│   └── apf_hook.py
+└── tests/
+```
+
+Behavior:
+
+1. `UserPromptSubmit` adds a very small preparation fallback.
+2. The first `apply_patch` / `Edit` / `Write` attempt in a turn is paused once and receives `BEFORE_CHANGE`.
+3. `PostToolUse` adds `ON_PROBLEM` once when the tool response contains an explicit structured failure signal.
+4. The first `Stop` is continued with `BEFORE_FINISH`; a continuation Stop (`stop_hook_active=true`) is allowed through.
+
+Turn state is stored under Codex `PLUGIN_DATA`, not inside the user's repository.
+
+## Run adapter tests
+
+```text
+python -m unittest discover prototype/tests
+```
 
 ## What this prototype is testing
 
 We want to learn whether short, well-timed instructions improve model behavior enough to justify the framework.
 
-Success is not measured by how many rules or hooks APF has. The sample is useful if it reliably causes the AI to:
-
-- narrow work before modifying code;
-- stop blind trial-and-error when stuck;
-- verify and review the actual result before claiming completion.
-
-Only after this works should more lifecycle stages, skills, or enforcement mechanisms be added.
+Do not add more lifecycle stages until this small loop has been exercised in real coding sessions.
