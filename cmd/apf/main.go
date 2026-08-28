@@ -68,7 +68,7 @@ func printSummary(s graph.Snapshot) {
 		fmt.Println("\nprojects:")
 		for _, n := range s.Nodes {
 			if n.Kind == graph.NodeProject {
-				fmt.Printf("  - %s [%s] %s\n", n.Name, n.Metadata["ecosystem"], n.Path)
+				fmt.Printf("  - %s [%s] %s (%s)\n", n.Name, n.Metadata["ecosystems"], n.Path, n.Confidence)
 			}
 		}
 	}
