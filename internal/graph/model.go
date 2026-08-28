@@ -62,4 +62,8 @@ type EdgeKind string
 const (
 	EdgeContains  EdgeKind = "contains"
 	EdgeDependsOn EdgeKind = "depends_on"
+	// EdgeGoverns means a repository file explicitly controls or configures a
+	// project. It is useful for impact analysis without pretending the file is
+	// a source-code dependency.
+	EdgeGoverns EdgeKind = "governs"
 )
