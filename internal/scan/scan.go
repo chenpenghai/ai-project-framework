@@ -15,17 +15,33 @@ import (
 	"github.com/chenpenghai/ai-project-framework/internal/graph"
 )
 
-var manifestKinds = map[string]string{
-	"package.json":        "node",
-	"go.mod":              "go",
-	"Cargo.toml":          "rust",
-	"pyproject.toml":      "python",
-	"pom.xml":             "maven",
-	"build.gradle":        "gradle",
-	"build.gradle.kts":    "gradle",
-	"settings.gradle":     "gradle",
-	"settings.gradle.kts": "gradle",
-	"CMakeLists.txt":      "cmake",
+type manifestSpec struct {
+	Ecosystem  string
+	Confidence graph.Confidence
+}
+
+var manifestSpecs = map[string]manifestSpec{
+	"package.json":        {"node", graph.ConfidenceDeclared},
+	"go.mod":              {"go", graph.ConfidenceDeclared},
+	"go.work":             {"go-workspace", graph.ConfidenceDeclared},
+	"Cargo.toml":          {"rust", graph.ConfidenceDeclared},
+	"pyproject.toml":      {"python", graph.ConfidenceDeclared},
+	"setup.py":            {"python", graph.ConfidenceDeclared},
+	"setup.cfg":           {"python", graph.ConfidenceDeclared},
+	"requirements.txt":    {"python", graph.ConfidenceInferredHigh},
+	"Pipfile":             {"python", graph.ConfidenceInferredHigh},
+	"pom.xml":             {"maven", graph.ConfidenceDeclared},
+	"build.gradle":        {"gradle", graph.ConfidenceDeclared},
+	"build.gradle.kts":    {"gradle", graph.ConfidenceDeclared},
+	"settings.gradle":     {"gradle-workspace", graph.ConfidenceDeclared},
+	"settings.gradle.kts": {"gradle-workspace", graph.ConfidenceDeclared},
+	"CMakeLists.txt":      {"cmake", graph.ConfidenceDeclared},
+	"meson.build":         {"meson", graph.ConfidenceDeclared},
+	"composer.json":       {"php", graph.ConfidenceDeclared},
+	"Gemfile":             {"ruby", graph.ConfidenceInferredHigh},
+	"pubspec.yaml":        {"dart", graph.ConfidenceDeclared},
+	"Package.swift":       {"swift", graph.ConfidenceDeclared},
+	"mix.exs":             {"elixir", graph.ConfidenceDeclared},
 }
 
 var fallbackSkipDirs = map[string]bool{
@@ -73,7 +89,7 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 
 	repoID := "repository:."
 	snapshot.Nodes = append(snapshot.Nodes, graph.Node{
-		ID: repoID, Kind: graph.NodeRepository, Name: filepath.Base(abs), Source: "filesystem",
+		ID: repoID, Kind: graph.NodeRepository, Name: filepath.Base(abs), Source: "filesystem", Confidence: graph.ConfidenceObserved,
 	})
 
 	projects := discoverProjects(abs, files)
@@ -87,27 +103,30 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 	}
 	for _, rel := range files {
 		snapshot.Nodes = append(snapshot.Nodes, graph.Node{
-			ID: "file:" + rel, Kind: graph.NodeFile, Name: filepath.Base(rel), Path: rel, Source: "filesystem",
+			ID: "file:" + rel, Kind: graph.NodeFile, Name: filepath.Base(rel), Path: rel, Source: "filesystem", Confidence: graph.ConfidenceObserved,
 			Metadata: fileMetadata(rel),
 		})
 	}
 
+	// Project hierarchy is derived from manifest locations.
 	for _, p := range projects {
 		parent := repoID
 		if q := nearestProjectAncestor(p.Path, projects); q != nil {
 			parent = q.Node.ID
 		}
-		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: p.Node.ID, Kind: graph.EdgeContains, Source: "manifest"})
+		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: p.Node.ID, Kind: graph.EdgeContains, Source: "manifest", Confidence: graph.ConfidenceDerived})
 	}
 
+	// Explicit logical modules attach to the nearest project, otherwise repo.
 	for _, m := range modules {
 		parent := repoID
 		if p := nearestProjectForPath(m.Path, projects); p != nil {
 			parent = p.Node.ID
 		}
-		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: m.Node.ID, Kind: graph.EdgeContains, Source: "MODULE.md"})
+		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: m.Node.ID, Kind: graph.EdgeContains, Source: "MODULE.md", Confidence: graph.ConfidenceDerived})
 	}
 
+	// Each file belongs to the nearest explicit module, else nearest project, else repo.
 	for _, rel := range files {
 		parent := repoID
 		if m := nearestModuleForPath(rel, modules); m != nil {
@@ -115,7 +134,7 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 		} else if p := nearestProjectForPath(rel, projects); p != nil {
 			parent = p.Node.ID
 		}
-		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: "file:" + rel, Kind: graph.EdgeContains, Source: "derived-containment"})
+		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: "file:" + rel, Kind: graph.EdgeContains, Source: "derived-containment", Confidence: graph.ConfidenceDerived})
 	}
 
 	sortSnapshot(&snapshot)
@@ -128,25 +147,93 @@ type locatedNode struct {
 }
 
 func discoverProjects(root string, files []string) []locatedNode {
-	var out []locatedNode
+	type aggregate struct {
+		path       string
+		name       string
+		confidence graph.Confidence
+		manifests  []string
+		ecosystems []string
+	}
+	byPath := map[string]*aggregate{}
+
 	for _, rel := range files {
 		base := filepath.Base(rel)
-		kind, ok := manifestKinds[base]
-		if !ok && !strings.HasSuffix(strings.ToLower(base), ".csproj") {
+		spec, ok := manifestSpecs[base]
+		if !ok && !strings.HasSuffix(strings.ToLower(base), ".csproj") && !strings.HasSuffix(strings.ToLower(base), ".sln") {
 			continue
 		}
 		if !ok {
-			kind = "dotnet"
+			if strings.HasSuffix(strings.ToLower(base), ".csproj") {
+				spec = manifestSpec{"dotnet", graph.ConfidenceDeclared}
+			} else {
+				spec = manifestSpec{"dotnet-workspace", graph.ConfidenceDeclared}
+			}
 		}
 		dir := filepath.ToSlash(filepath.Dir(rel))
-		name := projectName(filepath.Join(root, filepath.FromSlash(rel)), base, dir)
-		id := "project:" + dir
-		out = append(out, locatedNode{Path: dir, Node: graph.Node{
-			ID: id, Kind: graph.NodeProject, Name: name, Path: dir, Source: "manifest:" + base,
-			Metadata: map[string]string{"ecosystem": kind, "manifest": rel},
+		a := byPath[dir]
+		if a == nil {
+			a = &aggregate{path: dir, confidence: spec.Confidence}
+			byPath[dir] = a
+		}
+		a.manifests = append(a.manifests, rel)
+		a.ecosystems = append(a.ecosystems, spec.Ecosystem)
+		if confidenceRank(spec.Confidence) > confidenceRank(a.confidence) {
+			a.confidence = spec.Confidence
+		}
+		if name := projectName(filepath.Join(root, filepath.FromSlash(rel)), base, dir); name != "" {
+			if a.name == "" || base == "package.json" || base == "go.mod" {
+				a.name = name
+			}
+		}
+	}
+
+	out := make([]locatedNode, 0, len(byPath))
+	for _, a := range byPath {
+		sort.Strings(a.manifests)
+		a.ecosystems = sortedUnique(a.ecosystems)
+		if a.name == "" {
+			if a.path == "." {
+				a.name = filepath.Base(root)
+			} else {
+				a.name = filepath.Base(a.path)
+			}
+		}
+		out = append(out, locatedNode{Path: a.path, Node: graph.Node{
+			ID: "project:" + a.path, Kind: graph.NodeProject, Name: a.name, Path: a.path,
+			Source: "project-manifest", Confidence: a.confidence, Evidence: append([]string(nil), a.manifests...),
+			Metadata: map[string]string{
+				"ecosystems": strings.Join(a.ecosystems, ","),
+				"manifests":  strings.Join(a.manifests, ","),
+			},
 		}})
 	}
-	return dedupeLocated(out)
+	sort.Slice(out, func(i, j int) bool { return out[i].Node.ID < out[j].Node.ID })
+	return out
+}
+
+func confidenceRank(c graph.Confidence) int {
+	switch c {
+	case graph.ConfidenceDeclared:
+		return 4
+	case graph.ConfidenceObserved:
+		return 3
+	case graph.ConfidenceDerived:
+		return 3
+	case graph.ConfidenceInferredHigh:
+		return 2
+	case graph.ConfidenceCandidate:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func sortedUnique(in []string) []string {
+	if len(in) == 0 {
+		return nil
+	}
+	sort.Strings(in)
+	return unique(in)
 }
 
 func discoverModules(root string, files []string) []locatedNode {
@@ -158,7 +245,7 @@ func discoverModules(root string, files []string) []locatedNode {
 		dir := filepath.ToSlash(filepath.Dir(rel))
 		name := moduleName(filepath.Join(root, filepath.FromSlash(rel)), dir)
 		out = append(out, locatedNode{Path: dir, Node: graph.Node{
-			ID: "module:" + dir, Kind: graph.NodeModule, Name: name, Path: dir, Source: "MODULE.md",
+			ID: "module:" + dir, Kind: graph.NodeModule, Name: name, Path: dir, Source: "MODULE.md", Confidence: graph.ConfidenceDeclared, Evidence: []string{rel},
 			Metadata: map[string]string{"declaration": rel},
 		}})
 	}
@@ -281,7 +368,6 @@ func moduleName(path, dir string) string {
 				if v := strings.TrimSpace(strings.TrimPrefix(line, "module:")); v != "" {
 					return strings.Trim(v, "\"'")
 				}
-			}
 		}
 	}
 	if dir == "." {
