@@ -1,8 +1,9 @@
 package graph
 
 // Snapshot is a deterministic structural view of a repository.
-// It contains observed facts only. Heuristic hypotheses belong in a separate
-// layer and must never be mixed into hard enforcement by default.
+// It contains observed/derived facts and explicitly labeled high-confidence
+// inferences. Low-confidence hypotheses belong in a separate layer and must
+// never be mixed into hard enforcement by default.
 type Snapshot struct {
 	Version int      `json:"version"`
 	Root    string   `json:"root"`
@@ -16,21 +17,34 @@ type GitState struct {
 	ChangedFiles []string `json:"changed_files,omitempty"`
 }
 
+type Confidence string
+
+const (
+	ConfidenceObserved     Confidence = "observed"
+	ConfidenceDeclared     Confidence = "declared"
+	ConfidenceDerived      Confidence = "derived"
+	ConfidenceInferredHigh Confidence = "inferred_high"
+	ConfidenceCandidate    Confidence = "candidate"
+)
+
 type Node struct {
-	ID       string            `json:"id"`
-	Kind     NodeKind          `json:"kind"`
-	Name     string            `json:"name"`
-	Path     string            `json:"path,omitempty"`
-	Source   string            `json:"source"`
-	Metadata map[string]string `json:"metadata,omitempty"`
+	ID         string            `json:"id"`
+	Kind       NodeKind          `json:"kind"`
+	Name       string            `json:"name"`
+	Path       string            `json:"path,omitempty"`
+	Source     string            `json:"source"`
+	Confidence Confidence        `json:"confidence"`
+	Evidence   []string          `json:"evidence,omitempty"`
+	Metadata   map[string]string `json:"metadata,omitempty"`
 }
 
 type Edge struct {
-	From     string   `json:"from"`
-	To       string   `json:"to"`
-	Kind     EdgeKind `json:"kind"`
-	Source   string   `json:"source"`
-	Evidence []string `json:"evidence,omitempty"`
+	From       string     `json:"from"`
+	To         string     `json:"to"`
+	Kind       EdgeKind   `json:"kind"`
+	Source     string     `json:"source"`
+	Confidence Confidence `json:"confidence"`
+	Evidence   []string   `json:"evidence,omitempty"`
 }
 
 type NodeKind string
