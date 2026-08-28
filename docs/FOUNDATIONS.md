@@ -1,173 +1,230 @@
 # Foundations
 
-This document records the framework's durable design constraints. It should stay small. Implementation details belong elsewhere.
+This document records durable design constraints for AI Project Framework. Keep it small enough to remain authoritative. Implementation details belong in focused documents.
 
 ## 1. The framework serves the project
 
-The framework is successful only when it helps a project move faster while improving code quality and maintainability.
+The framework exists to make AI-assisted development faster, higher quality, and more reliable.
 
-Do not add a mechanism merely because it is theoretically complete or architecturally interesting. Every default-path feature must justify its runtime, cognitive, and maintenance cost.
+Do not add ceremony, metadata, agents, rules, or machinery merely because they are theoretically complete. Every mechanism must justify its cognitive, runtime, and maintenance cost.
 
-## 2. Large capability, small active surface
+## 2. The AI is the worker; the framework is the guide
 
-The framework may be internally sophisticated, but a normal change should activate only the smallest useful subset of its capabilities.
+The coding model still performs the development work.
 
-Framework scale and per-task overhead must remain decoupled.
+The framework should not assume that the model already knows how to perform a complex engineering activity reliably. It should decompose difficult behavior into small actions that a weaker but capable coding model can understand and execute.
 
-## 3. Zero user ceremony
+For example, do not rely on a vague instruction such as "review the code" when it can be decomposed into concrete checks such as:
 
-Users should not need to understand framework internals, select agents or skills, maintain routing tables, or repeatedly configure concepts the repository can infer.
+- look for duplicate authoritative facts,
+- inspect module-boundary violations,
+- identify business logic mixed with external effects,
+- verify affected module behavior,
+- check whether authoritative documentation changed.
 
-Prefer:
+The quality target is that a merely competent coding model can follow the framework successfully; the framework must not depend on exceptional model intelligence.
 
-1. inference,
-2. conventions already expressed by the project,
-3. explicit overrides only when inference is insufficient.
+## 3. Recursive modularity is the primary code shape
 
-Derived facts must not be manually duplicated.
+A project should be decomposable recursively:
 
-## 4. Universal by default
+```text
+project
+└── module
+    ├── submodule
+    │   └── smaller module
+    └── submodule
+```
 
-The core must not require a particular:
+A module is a cohesive unit that can be understood, changed, and verified with a clear responsibility and boundary. A module may contain smaller modules using the same principle.
 
-- programming language,
-- application architecture,
-- operating system,
-- IDE or coding assistant,
-- AI model,
-- second model,
-- hosted platform,
-- build system,
-- test framework.
+The goal is composability: internally complex units should present simple external surfaces, like building blocks.
 
-Language-, tool-, and platform-specific capabilities are progressive enhancements, not prerequisites.
+Do not define modules by arbitrary line counts or file counts. Split by responsibility, boundary, and independent reason to change.
 
-## 5. Reduce the reasoning surface
+Respect native language/package conventions; recursive modularity is a semantic rule, not one universal directory layout.
 
-The framework should reduce how much of the project a coding model must understand for one task.
+## 4. Reduce the reasoning surface
+
+The framework should continually reduce how much a coding model must understand at once.
 
 Primary techniques:
 
-- modular boundaries reduce structural scope,
-- pure functions reduce state and effect scope,
+- recursive modules reduce structural scope,
+- narrow public boundaries reduce dependency scope,
+- pure functions reduce state/effect scope,
 - single sources of truth reduce ambiguity,
-- context routing reduces knowledge scope,
-- affected verification reduces test scope,
-- minimal changes reduce modification scope.
+- on-demand documentation reduces knowledge scope,
+- affected verification reduces verification scope,
+- focused changes reduce modification scope.
 
-## 6. Modular code is the default shape
+The normal reasoning path should narrow from repository -> module -> submodule -> relevant implementation units.
 
-Prefer cohesive capability-oriented modules with explicit boundaries and narrow public surfaces.
+## 5. Pure functions are the preferred leaf shape
 
-Do not impose one physical directory pattern across languages. Respect native package/module systems where they exist.
+At the lower levels of the module tree, deterministic business logic should prefer simple pure functions where practical.
 
-The framework should prevent new structural regressions such as dependency cycles, boundary leaks, unnecessary public-surface growth, and ownerless shared business logic when these can be determined reliably.
+External effects such as persistence, network access, filesystem access, current time, randomness, shared mutable state, UI/runtime interaction, and process execution should be explicit and kept near boundaries.
 
-## 7. Pure core, effects at the edge
+The framework does not require every function to be pure. It should make deterministic logic easier for models to understand, compose, modify, and test.
 
-Business decisions and deterministic transformations should be pure whenever practical.
+## 6. Timed guidance beats permanent instruction load
 
-External effects such as persistence, network access, filesystem access, environment access, current time, randomness, shared mutable state, UI/runtime interaction, and process execution should remain explicit and concentrated near boundaries.
+A giant `AGENTS.md` is not the control system.
 
-The framework does not require every function to be pure. It should make pure logic easier to create, understand, test, and preserve.
+Rules and guidance should be delivered when they become relevant. Where a coding host supports lifecycle hooks, the framework should use key events such as:
 
-Purity analysis must be conservative:
+- session/task start,
+- user prompt submission,
+- before a tool or first code-changing action,
+- after code-changing actions,
+- before the agent stops,
+- before context compaction when useful.
 
-- PURE: sufficient evidence of determinism and no known effects,
-- EFFECTFUL: confirmed direct or transitive effects,
-- UNKNOWN: insufficient evidence.
+At a key event, inject only the small instruction set needed for that stage.
 
-UNKNOWN must never be silently treated as PURE.
+A critical gate may block progression and return a precise reason to the model when required evidence is missing.
 
-## 8. Single source of truth
+Host-specific lifecycle names are adapters. The framework behavior must remain host-neutral.
 
-A fact should have one authority.
+## 7. Instruction, evidence, gate
 
-Facts derivable from code or project tooling should be generated, not manually restated. Semantic business ownership may be declared explicitly only where machines cannot infer it reliably.
+For important workflow rules, prefer this shape:
 
-Documentation should describe intent and authoritative semantics rather than duplicate generated code facts.
+```text
+event
+  -> small instruction
+  -> observable evidence
+  -> gate
+```
 
-## 9. Deterministic gates, heuristic guidance
+Example:
 
-Use hard gates only for high-confidence, mechanically observable violations.
+```text
+before first code change
+  -> identify target module, plan the change, choose verification
+  -> required preparation evidence exists
+  -> allow or block the change
+```
 
-Use non-blocking guidance for heuristic observations such as possible extraction opportunities, suspicious shared modules, or possible semantic duplication.
+This is stronger than placing the same instruction in a long prompt and hoping the model remembers it.
 
-Never block development based on low-confidence inference.
+## 8. Mechanisms over model obedience
 
-## 10. Structural ratchet
+If a rule can be checked mechanically with high confidence, eventually express it as a project-owned mechanism rather than relying only on natural-language compliance.
 
-Existing projects may contain architectural debt. Adoption must not require rewriting the project first.
+Useful mechanisms include:
 
-The default rule is:
+- compiler and type-system constraints,
+- module/package boundaries,
+- tests,
+- linters,
+- architecture tests/checks,
+- schema/contract validation,
+- Git hooks where appropriate,
+- GitHub Actions.
 
-- existing known debt may remain,
-- new structural regressions should be rejected when deterministically detectable,
-- improvements pass silently.
+Host hooks provide early intervention; project-native checks and CI provide durable protection independent of a particular coding assistant.
 
-For projects created from this framework, the clean initial baseline should be preserved as the project grows.
+Do not hard-block on low-confidence semantic guesses.
 
-## 11. Incremental by design
+## 9. Documentation is a primary system
 
-Normal work must operate on changed files and affected graph regions rather than repeatedly rescanning and retesting the entire repository.
+Coding models depend on repository knowledge, so documentation is part of the operating structure of the project.
 
-Expensive analysis belongs on cached, warm, or cold paths unless the current change requires it.
+Durable constraints:
 
-Framework overhead itself is a performance budget that must be measured.
+- `AGENTS.md` stays small,
+- detailed knowledge is loaded on demand,
+- documentation follows the project/module structure where practical,
+- one fact has one authoritative source,
+- facts derivable from code or tooling are not manually duplicated,
+- current state belongs in current repository sources,
+- history belongs in Git,
+- models should update authoritative documentation when their work changes authoritative project knowledge.
 
-## 12. Local reasoning and local verification
+A document map may be useful, but it must not become a large hand-maintained task-to-file routing database. The exact document-map and module-README contracts remain under design.
 
-Good code should be locally understandable, locally testable, and locally verifiable.
+## 10. Sufficient affected verification
 
-The framework should favor code that is:
+The objective is not minimum testing and not universal full-repository testing.
 
-- local,
-- explicit,
-- deterministic,
-- composable.
+Use enough verification to cover the changed behavior and its reasonably affected dependencies.
 
-This principle is more important than enforcing any named architecture style.
+A module is the natural organizational unit for tests, while individual pure functions may still have focused tests inside that module's test suite.
 
-## 13. Current model only
+As systems grow, verification may include module tests, integration tests, architecture checks, and critical end-to-end paths.
 
-The framework must not require a second model or cross-model review process.
+Do not declare success while relevant verification is failing.
 
-The coding model receives deterministic evidence from the framework and corrects its own work. Optional external integrations may exist later, but they can never be required for the core workflow.
+## 11. Large capability, small active surface
 
-## 14. Core graph model
+The framework may know many workflows, skills, review checks, and host integrations, but a normal task should activate only the relevant subset.
 
-The current architectural hypothesis is that most useful behavior can be derived from three incremental graphs:
+Skills, agents, and specialist guidance are on-demand capabilities, not permanent context.
 
-### Structure Graph
+Framework scale and per-task overhead must remain decoupled.
 
-Projects, logical modules, files, symbols, dependencies, public surfaces, and structural boundaries.
+## 12. Universal by default
 
-### Effect Graph
+The core design must not require a particular:
 
-Calls, direct effects, transitive effects, and PURE / EFFECTFUL / UNKNOWN classification.
+- programming language,
+- application framework,
+- operating system,
+- coding assistant,
+- AI model,
+- second model,
+- package manager,
+- build system,
+- test framework.
 
-### Knowledge Graph
+Where hosts expose equivalent lifecycle events under different names, use thin adapters.
 
-Semantic authorities, modules, documentation, decisions, and tests.
+When a host lacks lifecycle hooks, degrade to the strongest portable combination available: small repository instructions plus project-native checks, Git, and CI.
 
-A change set queries these graphs to derive minimal context and minimal verification.
+## 13. Git and GitHub are first-class mechanisms
 
-This hypothesis should be tested before additional framework systems are added.
+Git is the authoritative history of project evolution.
 
-## 15. Framework source and consumer projects are separate products
+GitHub should be used where it provides durable value, especially Actions for model-independent automated verification and pull requests for change boundaries when appropriate.
 
-This repository is the framework's implementation source. It is not the starter project users should build applications inside.
+Do not duplicate architecture facts or routine internal state into GitHub Issues. Issues are for genuine tracked problems, feedback, or collaboration.
 
-Framework implementation complexity must never leak into consumer repositories. A newly created consumer project starts with:
+## 14. Inference over duplicated configuration
+
+Users and models should not maintain information the repository can reliably derive.
+
+Avoid hand-maintained dependency registries, file inventories, context-routing databases, or duplicate ownership tables when code structure, manifests, Git, tests, or native tooling already express the same fact.
+
+Explicit declarations are reserved for semantic facts machines cannot infer reliably.
+
+## 15. Deterministic gates, heuristic guidance
+
+Use blocking gates only for high-confidence, mechanically observable conditions.
+
+Use non-blocking guidance for uncertain judgments such as possible module extraction, suspicious coupling, or possible semantic duplication.
+
+The framework should help the model make semantic decisions, not pretend uncertain inference is mechanical truth.
+
+## 16. Framework source and consumer project are separate
+
+This repository is the framework source and research project. It is not the application project a user builds inside.
+
+The canonical user-facing artifact lives in `empty-project/` and starts with:
 
 - zero application code,
 - zero prescribed language,
-- zero prescribed architecture,
-- zero framework source code,
-- only the minimum control surface required to activate the framework.
+- zero prescribed application architecture,
+- no framework executable,
+- no framework runtime.
 
-The framework may dogfood itself as a normal software project, but that does not make its source tree part of a user's project.
+The static artifact may contain host configuration and control files as the design matures, but framework implementation source must not leak into consumer projects.
 
-The consumer artifact is a static directory. It must not require a framework executable or framework runtime. The current coding model applies the framework through static project guidance and project-native mechanisms.
+## 17. Graphs are research models, not the product core
 
-The canonical consumer artifact lives directly in `empty-project/`; do not maintain a second generated copy of the same static files.
+Structure Graph, Effect Graph, and Knowledge Graph remain useful research concepts for reasoning about dependencies, effects, ownership, and impact.
+
+They are not the defining product architecture and do not imply a graph database, scanner runtime, daemon, or required framework executable inside user projects.
+
+The framework should adopt graph-derived mechanisms only when they demonstrably improve the core goals above without slowing normal development.
