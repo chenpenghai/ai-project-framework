@@ -51,7 +51,23 @@ func TestEmptyProjectIsStaticAndEmpty(t *testing.T) {
 		t.Fatalf("empty-project files = %#v, want %#v", files, want)
 	}
 
-	snapshot, err := (scan.Scanner{}).Scan(root)
+	copyRoot := t.TempDir()
+	for _, rel := range want {
+		src := filepath.Join(root, filepath.FromSlash(rel))
+		dst := filepath.Join(copyRoot, filepath.FromSlash(rel))
+		data, err := os.ReadFile(src)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.MkdirAll(filepath.Dir(dst), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(dst, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	snapshot, err := (scan.Scanner{}).Scan(copyRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
