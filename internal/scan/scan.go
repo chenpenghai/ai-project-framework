@@ -135,6 +135,7 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 	}
 
 	snapshot.Edges = append(snapshot.Edges, discoverDeclaredDependencies(abs, projects)...)
+	snapshot.Edges = append(snapshot.Edges, discoverWorkspaceEdges(abs, projects)...)
 	sortSnapshot(&snapshot)
 	return snapshot, nil
 }
