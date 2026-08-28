@@ -108,7 +108,6 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 		})
 	}
 
-	// Project hierarchy is derived from manifest locations.
 	for _, p := range projects {
 		parent := repoID
 		if q := nearestProjectAncestor(p.Path, projects); q != nil {
@@ -117,7 +116,6 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: p.Node.ID, Kind: graph.EdgeContains, Source: "manifest", Confidence: graph.ConfidenceDerived})
 	}
 
-	// Explicit logical modules attach to the nearest project, otherwise repo.
 	for _, m := range modules {
 		parent := repoID
 		if p := nearestProjectForPath(m.Path, projects); p != nil {
@@ -126,7 +124,6 @@ func (Scanner) Scan(root string) (graph.Snapshot, error) {
 		snapshot.Edges = append(snapshot.Edges, graph.Edge{From: parent, To: m.Node.ID, Kind: graph.EdgeContains, Source: "MODULE.md", Confidence: graph.ConfidenceDerived})
 	}
 
-	// Each file belongs to the nearest explicit module, else nearest project, else repo.
 	for _, rel := range files {
 		parent := repoID
 		if m := nearestModuleForPath(rel, modules); m != nil {
@@ -361,20 +358,31 @@ func projectName(path, base, dir string) string {
 func moduleName(path, dir string) string {
 	data, err := os.ReadFile(path)
 	if err == nil {
-		s := bufio.NewScanner(strings.NewReader(string(data)))
-		for s.Scan() {
-			line := strings.TrimSpace(s.Text())
-			if strings.HasPrefix(line, "module:") {
-				if v := strings.TrimSpace(strings.TrimPrefix(line, "module:")); v != "" {
-					return strings.Trim(v, "\"'")
-				}
-			}
+		if name := frontmatterModuleName(data); name != "" {
+			return name
 		}
 	}
 	if dir == "." {
 		return filepath.Base(filepath.Dir(path))
 	}
 	return filepath.Base(dir)
+}
+
+func frontmatterModuleName(data []byte) string {
+	s := bufio.NewScanner(strings.NewReader(string(data)))
+	if !s.Scan() || strings.TrimSpace(s.Text()) != "---" {
+		return ""
+	}
+	for s.Scan() {
+		line := strings.TrimSpace(s.Text())
+		if line == "---" {
+			return ""
+		}
+		if strings.HasPrefix(line, "module:") {
+			return strings.Trim(strings.TrimSpace(strings.TrimPrefix(line, "module:")), "\"'")
+		}
+	}
+	return ""
 }
 
 func detectGitRoot(root string) (string, bool) {
@@ -399,14 +407,7 @@ func listFiles(root string, gitOK bool) ([]string, error) {
 		cmd := exec.Command("git", "-C", root, "ls-files", "-co", "--exclude-standard", "-z")
 		out, err := cmd.Output()
 		if err == nil {
-			parts := strings.Split(string(out), "\x00")
-			files := make([]string, 0, len(parts))
-			for _, p := range parts {
-				if p == "" {
-					continue
-				}
-				files = append(files, filepath.ToSlash(p))
-			}
+			files := nulPaths(out)
 			sort.Strings(files)
 			return unique(files), nil
 		}
@@ -443,9 +444,9 @@ func listFiles(root string, gitOK bool) ([]string, error) {
 func gitChangedFiles(root string) []string {
 	seen := map[string]struct{}{}
 	commands := [][]string{
-		{"diff", "--name-only", "--relative"},
-		{"diff", "--cached", "--name-only", "--relative"},
-		{"ls-files", "--others", "--exclude-standard"},
+		{"diff", "--name-only", "--relative", "-z"},
+		{"diff", "--cached", "--name-only", "--relative", "-z"},
+		{"ls-files", "--others", "--exclude-standard", "-z"},
 	}
 	for _, args := range commands {
 		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
@@ -453,11 +454,8 @@ func gitChangedFiles(root string) []string {
 		if err != nil {
 			continue
 		}
-		for _, line := range strings.Split(string(out), "\n") {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				seen[filepath.ToSlash(line)] = struct{}{}
-			}
+		for _, path := range nulPaths(out) {
+			seen[path] = struct{}{}
 		}
 	}
 	out := make([]string, 0, len(seen))
@@ -465,6 +463,18 @@ func gitChangedFiles(root string) []string {
 		out = append(out, p)
 	}
 	sort.Strings(out)
+	return out
+}
+
+func nulPaths(data []byte) []string {
+	parts := strings.Split(string(data), "\x00")
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if p == "" {
+			continue
+		}
+		out = append(out, filepath.ToSlash(p))
+	}
 	return out
 }
 
