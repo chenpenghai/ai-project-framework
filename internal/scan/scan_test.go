@@ -15,6 +15,8 @@ func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
 	write(t, root, "go.work", "go 1.23\n")
 	write(t, root, "src/order/MODULE.md", "---\nmodule: order\n---\n")
 	write(t, root, "src/order/refund.js", "export function refund() {}\n")
+	write(t, root, "src/billing/MODULE.md", "# Notes\nmodule: not-frontmatter\n")
+	write(t, root, "src/billing/calc.js", "export function calc() {}\n")
 	write(t, root, "services/worker/go.mod", "module example.com/worker\n\ngo 1.23\n")
 	write(t, root, "services/worker/main.go", "package main\n")
 	write(t, root, "services/python/requirements.txt", "fastapi\n")
@@ -39,10 +41,18 @@ func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
 		t.Fatalf("requirements-only project confidence = %s, want inferred_high", pythonProject.Confidence)
 	}
 	assertNode(t, s.Nodes, "module:src/order", graph.NodeModule, "order")
+	assertNode(t, s.Nodes, "module:src/billing", graph.NodeModule, "billing")
 	assertEdge(t, s.Edges, "project:.", "module:src/order", graph.EdgeContains)
 	assertEdge(t, s.Edges, "module:src/order", "file:src/order/refund.js", graph.EdgeContains)
 	assertEdge(t, s.Edges, "project:.", "project:services/worker", graph.EdgeContains)
 	assertEdge(t, s.Edges, "project:services/worker", "file:services/worker/main.go", graph.EdgeContains)
+}
+
+func TestNulPathsPreservesValidFilenameCharacters(t *testing.T) {
+	got := nulPaths([]byte("dir/a\nb.txt\x00space name.go\x00"))
+	if len(got) != 2 || got[0] != "dir/a\nb.txt" || got[1] != "space name.go" {
+		t.Fatalf("nulPaths() = %#v", got)
+	}
 }
 
 func write(t *testing.T, root, rel, content string) {
