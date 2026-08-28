@@ -12,7 +12,7 @@ import (
 func TestScanDiscoversProjectsModulesContainmentAndDeclaredDependencies(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "package.json", `{"name":"demo-root"}`)
-	write(t, root, "go.work", "go 1.23\n")
+	write(t, root, "go.work", "go 1.23\n\nuse (\n\t./shared\n\t./services/worker\n)\n")
 	write(t, root, "src/order/MODULE.md", "---\nmodule: order\n---\n")
 	write(t, root, "src/order/refund.js", "export function refund() {}\n")
 	write(t, root, "src/billing/MODULE.md", "# Notes\nmodule: not-frontmatter\n")
@@ -57,6 +57,8 @@ func TestScanDiscoversProjectsModulesContainmentAndDeclaredDependencies(t *testi
 	assertEdge(t, s.Edges, "project:services/worker", "file:services/worker/main.go", graph.EdgeContains)
 	assertEdge(t, s.Edges, "project:services/worker", "project:shared", graph.EdgeDependsOn)
 	assertEdge(t, s.Edges, "project:packages/app", "project:packages/ui", graph.EdgeDependsOn)
+	assertEdge(t, s.Edges, "file:go.work", "project:shared", graph.EdgeGoverns)
+	assertEdge(t, s.Edges, "file:go.work", "project:services/worker", graph.EdgeGoverns)
 }
 
 func TestNulPathsPreservesValidFilenameCharacters(t *testing.T) {
