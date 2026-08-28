@@ -153,3 +153,19 @@ Semantic authorities, modules, documentation, decisions, and tests.
 A change set queries these graphs to derive minimal context and minimal verification.
 
 This hypothesis should be tested before additional framework systems are added.
+
+## 15. Framework source and consumer projects are separate products
+
+This repository is the framework's implementation source. It is not the starter project users should build applications inside.
+
+Framework implementation complexity must never leak into consumer repositories. A newly created consumer project starts with:
+
+- zero application code,
+- zero prescribed language,
+- zero prescribed architecture,
+- zero framework source code,
+- only the minimum control surface required to activate the framework.
+
+The framework may dogfood itself as a normal software project, but that does not make its source tree part of a user's project.
+
+Consumer project output must be generated and regression-tested from the framework source rather than maintained as a second hand-edited source of truth.
