@@ -1,0 +1,26 @@
+{
+  "id": "before_finish",
+  "event": "BEFORE_FINISH",
+  "steps": [
+    {
+      "id": "check_goal",
+      "instruction": "Compare the actual result with the user's requested goal. Identify any requested behavior that is still missing or only partially completed.",
+      "evidence": "Briefly state what was requested and whether the implemented result covers it."
+    },
+    {
+      "id": "check_structure",
+      "instruction": "Inspect only the changed area for obvious module-boundary leaks, duplicated authoritative logic/data, or unnecessary mixing of deterministic logic with external effects.",
+      "evidence": "State what you inspected and any issue found or why no important issue is present."
+    },
+    {
+      "id": "check_verification",
+      "instruction": "Run or confirm sufficient verification for the changed behavior and its reasonably affected dependencies.",
+      "evidence": "Report the relevant checks run and their outcome. Do not claim success for checks that were not run."
+    },
+    {
+      "id": "check_project_knowledge",
+      "instruction": "Decide whether this work changed authoritative project knowledge that should persist for future developers or coding agents. Update existing authoritative documentation only when needed.",
+      "evidence": "State whether persistent project knowledge changed and what was updated, or why no documentation change is needed."
+    }
+  ]
+}
