@@ -368,6 +368,7 @@ func moduleName(path, dir string) string {
 				if v := strings.TrimSpace(strings.TrimPrefix(line, "module:")); v != "" {
 					return strings.Trim(v, "\"'")
 				}
+			}
 		}
 	}
 	if dir == "." {
