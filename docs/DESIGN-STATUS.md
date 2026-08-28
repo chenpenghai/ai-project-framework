@@ -2,114 +2,120 @@
 
 Updated: 2026-08-28.
 
-This file is the short handoff for continuing framework design in a new session. Durable principles live in `FOUNDATIONS.md`; host-hook research lives in `HOST-HOOKS.md`.
-
 ## Current product definition
 
-AI Project Framework is a generic empty project used as the starting environment for future software projects.
+AI Project Framework (APF) is a plugin-oriented guidance layer for AI-assisted development.
 
-The coding AI is the worker. The framework should make a weaker but capable AI behave more like a disciplined developer by giving it small, concrete instructions at the right moments and by using mechanisms that do not depend on model memory or obedience.
+It is not an empty-project template. It should work on both new and existing projects without requiring a migration or mandatory project structure.
 
-The user-facing project remains static and must not require an APF executable/runtime.
+The AI is the worker. APF intervenes at useful moments, narrows the current problem, and breaks expert development behavior into small executable actions.
 
-## Core idea now established
-
-### 1. Recursive modularity is the code core
-
-The project is a tree of building blocks:
+## Current architecture direction
 
 ```text
-project
-└── module
-    ├── submodule
-    │   └── smaller module
-    └── submodule
+shared APF core
+        ↓
+thin host adapters/plugins
+        ↓
+existing coding assistant
+        ↓
+user's current project
 ```
 
-Large modules contain smaller modules; lower levels should become simple enough for an AI to understand and modify locally. Narrow boundaries and pure deterministic leaf logic are preferred.
+The shared core owns development guidance. Host adapters only translate host lifecycle events and feedback semantics.
 
-### 2. The framework must guide at key moments
+Do not maintain separate rule sets for Claude, Codex, Cursor, Gemini, CodeBuddy, or other hosts.
 
-A giant permanent rule prompt is not sufficient.
+## Existing-project principle
 
-Main control idea:
+Enabling APF should do nothing destructive or ceremonial to the repository.
+
+Do not automatically:
+
+- generate `.apf/`;
+- create `AGENTS.md`;
+- reorganize modules;
+- create README files everywhere;
+- migrate tests;
+- rewrite architecture.
+
+Instead, when real work touches an area, APF should guide the AI toward a cleaner local result without unnecessarily widening task scope.
+
+## First prototype
+
+Stop expanding the design before testing the central idea.
+
+The first host-neutral sample uses three semantic events:
 
 ```text
-key event
-  -> small instruction
-  -> evidence
-  -> gate
+BEFORE_CHANGE
+ON_PROBLEM
+BEFORE_FINISH
 ```
 
-Example: if planning is required before coding, do not merely write "plan first" in `AGENTS.md`. Intercept the first code-changing action, require the preparation evidence, block if it is missing, and tell the AI exactly what to do next.
+### BEFORE_CHANGE
 
-### 3. Complex developer behaviors should be decomposed
+Before meaningful code modification, help the AI:
 
-Do not tell a weaker AI only "review the code". Break review into simple actions such as:
+1. narrow the user's goal;
+2. identify the smallest affected area/module;
+3. split the work into small steps;
+4. decide how the result will be verified.
 
-- check duplicate authoritative facts,
-- check module-boundary leaks,
-- check pure logic versus external effects,
-- check affected tests,
-- check authoritative documentation.
+Do not require a long formal plan.
 
-The framework should progressively encode expert development behavior as small executable steps.
+### ON_PROBLEM
 
-### 4. Mainstream coding hosts are converging on hooks
+When there is evidence of failure, repeated unsuccessful attempts, or a broken assumption:
 
-Research currently supports a common lifecycle around concepts equivalent to:
+1. stop blind retries;
+2. state the observed failure;
+3. inspect the smallest useful evidence;
+4. form a narrow hypothesis;
+5. choose one next diagnostic action.
 
-```text
-SessionStart
-UserPromptSubmit
-PreToolUse
-PostToolUse
-Stop
-PreCompact
-```
+The goal is to prevent uncontrolled scope expansion.
 
-Host-specific adapters should translate these into one framework lifecycle. See `HOST-HOOKS.md`.
+### BEFORE_FINISH
 
-## Important corrections from earlier design
+Before declaring completion:
 
-- Do not make Structure/Effect/Knowledge Graphs the product core. They remain research models only.
-- Do not ship an APF runtime, executable, daemon, or scanner into consumer projects.
-- Do not use manually maintained context-routing tables as the default solution.
-- Do not use giant `AGENTS.md` / rule manuals as the main control mechanism.
-- Do not require multi-model review.
-- Do not optimize for "minimal verification"; optimize for sufficient verification of affected behavior.
-- Do not use GitHub Issues as a duplicate internal architecture/task database.
+1. compare the actual result with the user's goal;
+2. review the changed area for obvious boundary, duplication, and effect problems;
+3. run sufficient affected verification;
+4. update persistent project knowledge only if the work changed it;
+5. continue working if an important unresolved problem remains.
 
-## Documentation direction already agreed
+The current sample lives in `prototype/`.
 
-The documentation system remains a major framework capability:
+## Code direction retained
 
-- `AGENTS.md` should stay small,
-- detailed knowledge should load on demand,
-- module-local knowledge should live near its module,
-- one fact should have one authoritative source,
-- documentation should stay aligned with code,
-- models should leave useful repository context as work progresses/completes.
+Recursive modularity remains the preferred code shape: large capabilities should be composed from smaller coherent modules with narrow boundaries.
 
-A lightweight document map may still be useful, but the exact design is not decided. Do not recreate a large hand-maintained task-to-document router.
+At lower levels, deterministic logic should prefer simple pure functions where practical and keep external effects explicit.
 
-The exact module `README.md` contract is also not finalized, though module-local README/documentation remains a strong direction.
+These are progressive development directions, not installation-time migration requirements.
 
-## Verification direction already agreed
+## Important rejected directions
 
-Tests should be organized around modules rather than one unrelated global test pile. Small functions may have focused tests inside the module's test suite.
+Do not return to these by default:
 
-Mechanically observable rules should become project-native checks/tests/CI where practical. Hooks provide timing and early feedback; they are not the sole enforcement layer.
+- static `empty-project/` as the product;
+- mandatory APF project files;
+- consumer APF executable/runtime/daemon;
+- graph/scanner as product core;
+- giant permanent `AGENTS.md` or rule manual;
+- one separate framework rule set per coding assistant;
+- mandatory multi-model review;
+- framework-wide cleanup during unrelated tasks;
+- GitHub Issues as duplicate internal state.
 
 ## Current design frontier
 
-Do not jump back into scanner/graph implementation yet.
+Build and test the small three-event prototype before adding more lifecycle stages or framework machinery.
 
-The next design work should continue from the lifecycle insight:
+The next implementation question is narrow:
 
-1. decide the smallest useful framework lifecycle stages,
-2. decide what instruction/evidence/gate belongs at each stage,
-3. then connect documentation, module structure, planning, review, testing, skills/agents, and GitHub mechanisms to those stages,
-4. only after that decide the consumer static-file layout and host adapter files.
+> Which host should receive the first thin adapter, and can it reliably deliver the three shared guidance events without copying the guidance itself?
 
-Do not prematurely freeze `.apf`, `AGENTS.md`, hook configuration, or module README schemas before the above behavior is clear.
+Vendor hook/plugin APIs must be checked against current official documentation when that adapter is implemented.
