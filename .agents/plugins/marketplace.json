@@ -1,0 +1,16 @@
+{
+  "name": "apf-development",
+  "interface": {
+    "displayName": "AI Project Framework"
+  },
+  "plugins": [
+    {
+      "name": "apf-prototype",
+      "source": {
+        "source": "local",
+        "path": "./prototype"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
