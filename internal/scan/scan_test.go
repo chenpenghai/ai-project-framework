@@ -9,7 +9,7 @@ import (
 	"github.com/chenpenghai/ai-project-framework/internal/graph"
 )
 
-func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
+func TestScanDiscoversProjectsModulesContainmentAndDeclaredDependencies(t *testing.T) {
 	root := t.TempDir()
 	write(t, root, "package.json", `{"name":"demo-root"}`)
 	write(t, root, "go.work", "go 1.23\n")
@@ -17,10 +17,18 @@ func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
 	write(t, root, "src/order/refund.js", "export function refund() {}\n")
 	write(t, root, "src/billing/MODULE.md", "# Notes\nmodule: not-frontmatter\n")
 	write(t, root, "src/billing/calc.js", "export function calc() {}\n")
-	write(t, root, "services/worker/go.mod", "module example.com/worker\n\ngo 1.23\n")
+
+	write(t, root, "shared/go.mod", "module example.com/shared\n\ngo 1.23\n")
+	write(t, root, "shared/shared.go", "package shared\n")
+	write(t, root, "services/worker/go.mod", "module example.com/worker\n\ngo 1.23\n\nrequire (\n\texample.com/shared v0.0.0\n)\n")
 	write(t, root, "services/worker/main.go", "package main\n")
 	write(t, root, "services/python/requirements.txt", "fastapi\n")
 	write(t, root, "services/python/main.py", "print('ok')\n")
+
+	write(t, root, "packages/ui/package.json", `{"name":"@demo/ui"}`)
+	write(t, root, "packages/ui/index.js", "export const ui = true\n")
+	write(t, root, "packages/app/package.json", `{"name":"@demo/app","dependencies":{"@demo/ui":"workspace:*"}}`)
+	write(t, root, "packages/app/index.js", "export const app = true\n")
 
 	s, err := (Scanner{}).Scan(root)
 	if err != nil {
@@ -36,6 +44,7 @@ func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
 	}
 
 	assertNode(t, s.Nodes, "project:services/worker", graph.NodeProject, "example.com/worker")
+	assertNode(t, s.Nodes, "project:shared", graph.NodeProject, "example.com/shared")
 	pythonProject := assertNode(t, s.Nodes, "project:services/python", graph.NodeProject, "python")
 	if pythonProject.Confidence != graph.ConfidenceInferredHigh {
 		t.Fatalf("requirements-only project confidence = %s, want inferred_high", pythonProject.Confidence)
@@ -46,6 +55,8 @@ func TestScanDiscoversProjectsExplicitModulesAndContainment(t *testing.T) {
 	assertEdge(t, s.Edges, "module:src/order", "file:src/order/refund.js", graph.EdgeContains)
 	assertEdge(t, s.Edges, "project:.", "project:services/worker", graph.EdgeContains)
 	assertEdge(t, s.Edges, "project:services/worker", "file:services/worker/main.go", graph.EdgeContains)
+	assertEdge(t, s.Edges, "project:services/worker", "project:shared", graph.EdgeDependsOn)
+	assertEdge(t, s.Edges, "project:packages/app", "project:packages/ui", graph.EdgeDependsOn)
 }
 
 func TestNulPathsPreservesValidFilenameCharacters(t *testing.T) {
