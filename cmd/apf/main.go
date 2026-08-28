@@ -64,6 +64,7 @@ func printSummary(s graph.Snapshot) {
 		}
 	}
 	cycles := graph.DependencyCycles(s)
+	affected := graph.AffectedProjects(s, s.Git.ChangedFiles)
 
 	fmt.Println("AI Project Framework — structure scan")
 	fmt.Println("root:", s.Root)
@@ -73,6 +74,7 @@ func printSummary(s graph.Snapshot) {
 	fmt.Printf("files: %d\n", counts[graph.NodeFile])
 	fmt.Printf("declared local dependencies: %d\n", dependencyCount)
 	fmt.Printf("project dependency cycles: %d\n", len(cycles))
+	fmt.Printf("affected projects: %d\n", len(affected))
 
 	if counts[graph.NodeProject] > 0 {
 		fmt.Println("\nprojects:")
@@ -94,6 +96,12 @@ func printSummary(s graph.Snapshot) {
 		fmt.Println("\ndependency cycles:")
 		for _, cycle := range cycles {
 			fmt.Printf("  - %v\n", cycle)
+		}
+	}
+	if len(affected) > 0 {
+		fmt.Println("\naffected projects:")
+		for _, id := range affected {
+			fmt.Printf("  - %s\n", id)
 		}
 	}
 	if counts[graph.NodeModule] > 0 {
