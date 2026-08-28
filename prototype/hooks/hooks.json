@@ -1,0 +1,62 @@
+{
+  "description": "APF prototype lifecycle guidance for Codex.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/apf_hook.py",
+            "commandWindows": "py -3 %PLUGIN_ROOT%\\hooks\\apf_hook.py",
+            "timeout": 5,
+            "additionalContextLimit": 1200,
+            "statusMessage": "APF task guidance"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/apf_hook.py",
+            "commandWindows": "py -3 %PLUGIN_ROOT%\\hooks\\apf_hook.py",
+            "timeout": 5,
+            "additionalContextLimit": 1200,
+            "statusMessage": "APF before-change checkpoint"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/apf_hook.py",
+            "commandWindows": "py -3 %PLUGIN_ROOT%\\hooks\\apf_hook.py",
+            "timeout": 5,
+            "additionalContextLimit": 1200,
+            "statusMessage": "APF problem check"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${PLUGIN_ROOT}/hooks/apf_hook.py",
+            "commandWindows": "py -3 %PLUGIN_ROOT%\\hooks\\apf_hook.py",
+            "timeout": 5,
+            "statusMessage": "APF finish checkpoint"
+          }
+        ]
+      }
+    ]
+  }
+}
