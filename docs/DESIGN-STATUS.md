@@ -43,9 +43,7 @@ Instead, when real work touches an area, APF should guide the AI toward a cleane
 
 ## First prototype
 
-Stop expanding the design before testing the central idea.
-
-The first host-neutral sample uses three semantic events:
+The first prototype uses three semantic events:
 
 ```text
 BEFORE_CHANGE
@@ -55,38 +53,41 @@ BEFORE_FINISH
 
 ### BEFORE_CHANGE
 
-Before meaningful code modification, help the AI:
-
-1. narrow the user's goal;
-2. identify the smallest affected area/module;
-3. split the work into small steps;
-4. decide how the result will be verified.
-
-Do not require a long formal plan.
+Before meaningful code modification, help the AI narrow the goal, identify the smallest affected area, split the work into small steps, and choose verification. Do not require a long formal plan.
 
 ### ON_PROBLEM
 
-When there is evidence of failure, repeated unsuccessful attempts, or a broken assumption:
-
-1. stop blind retries;
-2. state the observed failure;
-3. inspect the smallest useful evidence;
-4. form a narrow hypothesis;
-5. choose one next diagnostic action.
-
-The goal is to prevent uncontrolled scope expansion.
+When there is explicit failure evidence, stop blind retries, state the observed failure, inspect the smallest useful evidence, form one narrow hypothesis, and choose one diagnostic action.
 
 ### BEFORE_FINISH
 
-Before declaring completion:
+Before declaring completion, compare the actual result with the user's goal, review the changed area, run sufficient affected verification, update persistent project knowledge only when needed, and continue working if an important problem remains.
 
-1. compare the actual result with the user's goal;
-2. review the changed area for obvious boundary, duplication, and effect problems;
-3. run sufficient affected verification;
-4. update persistent project knowledge only if the work changed it;
-5. continue working if an important unresolved problem remains.
+## Codex adapter now exists
 
-The current sample lives in `prototype/`.
+`prototype/` is now a self-contained Codex plugin prototype.
+
+It maps:
+
+```text
+UserPromptSubmit -> small preparation fallback
+PreToolUse       -> BEFORE_CHANGE
+PostToolUse      -> ON_PROBLEM when explicit failure is observable
+Stop             -> BEFORE_FINISH
+```
+
+The adapter reads the shared guidance files rather than copying their content.
+
+Turn state lives in Codex `PLUGIN_DATA`; the user's repository is not used as framework state storage.
+
+The prototype intentionally fails open if its own hook script errors.
+
+## Known prototype limits
+
+- Hook coverage is a host capability, not a complete security/enforcement boundary.
+- `ON_PROBLEM` currently reacts only to explicit structured failure signals; it does not guess from arbitrary output text.
+- The first version uses Python for the command hook and therefore currently assumes a Python 3 command is available.
+- Windows Codex hook command handling has had recent path/quoting bugs; real Windows testing is required before treating the adapter as portable.
 
 ## Code direction retained
 
@@ -112,10 +113,12 @@ Do not return to these by default:
 
 ## Current design frontier
 
-Build and test the small three-event prototype before adding more lifecycle stages or framework machinery.
+Do not add more framework concepts yet.
 
-The next implementation question is narrow:
+Next, run the Codex prototype in real coding sessions and observe only three things:
 
-> Which host should receive the first thin adapter, and can it reliably deliver the three shared guidance events without copying the guidance itself?
+1. Does the before-change interruption make the model narrow and plan better without becoming annoying?
+2. Does problem guidance reduce blind retries?
+3. Does the finish interruption catch real omissions often enough to justify its cost?
 
-Vendor hook/plugin APIs must be checked against current official documentation when that adapter is implemented.
+Use those observations to change the three guidance steps before adding more hosts or lifecycle stages.
