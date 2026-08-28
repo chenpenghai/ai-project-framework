@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/chenpenghai/ai-project-framework/internal/consumer"
 	"github.com/chenpenghai/ai-project-framework/internal/graph"
 	"github.com/chenpenghai/ai-project-framework/internal/scan"
 )
@@ -18,11 +17,6 @@ func main() {
 	}
 
 	switch os.Args[1] {
-	case "new":
-		if err := runNew(os.Args[2:]); err != nil {
-			fmt.Fprintln(os.Stderr, "apf:", err)
-			os.Exit(1)
-		}
 	case "scan":
 		if err := runScan(os.Args[2:]); err != nil {
 			fmt.Fprintln(os.Stderr, "apf:", err)
@@ -32,17 +26,6 @@ func main() {
 		usage()
 		os.Exit(2)
 	}
-}
-
-func runNew(args []string) error {
-	if len(args) != 1 {
-		return fmt.Errorf("usage: apf new <directory>")
-	}
-	if err := consumer.NewProject(args[0]); err != nil {
-		return err
-	}
-	fmt.Println("Created empty APF project:", args[0])
-	return nil
 }
 
 func runScan(args []string) error {
@@ -132,7 +115,5 @@ func printSummary(s graph.Snapshot) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage:")
-	fmt.Fprintln(os.Stderr, "  apf new <directory>")
-	fmt.Fprintln(os.Stderr, "  apf scan [--json] [repository]")
+	fmt.Fprintln(os.Stderr, "usage: apf scan [--json] [repository]")
 }
