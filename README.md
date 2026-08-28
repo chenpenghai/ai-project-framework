@@ -1,103 +1,78 @@
 # AI Project Framework
 
-A general-purpose project framework for AI-assisted software development.
+AI Project Framework (APF) is a guidance layer for AI-assisted software development.
 
-The framework exists to help a coding AI build software faster and more reliably by reducing the amount of judgment, memory, and project-wide reasoning required for each step.
+The AI remains the worker. APF intervenes at useful moments, turns broad engineering behavior into small executable actions, and helps projects improve while real work is being done.
 
-The coding AI is still the worker. The framework's job is to guide that worker at the right moments, break difficult engineering behavior into small executable actions, and use project-native mechanisms to catch mistakes that should not depend on model obedience.
+## Product direction
 
-## User-facing product
+APF is **not an empty-project template** and does not require a project to adopt a special directory layout before it can be used.
 
-The user-facing artifact is the `empty-project/` directory in this repository.
+A new project and an existing project are both valid starting points.
 
-Copy that directory, rename it for the new project, open it with a coding assistant, and start describing the product to build.
+Installing/enabling APF should not automatically create files, reorganize directories, or perform a framework migration. Project structure should change only when the current development task provides a good reason to improve it.
 
-The initial project is intentionally static and empty:
-
-```text
-empty-project/
-├── AGENTS.md
-└── .apf/
-    └── project.yaml
-```
-
-It contains no application code, no prescribed programming language, no prescribed application architecture, no executable, and no framework runtime.
-
-## Core direction
-
-### Recursive modularity
-
-The project should grow as a tree of composable modules:
+The intended product shape is:
 
 ```text
-project
-└── module
-    ├── submodule
-    │   └── smaller module
-    └── submodule
+shared APF core
+  + thin host adapters/plugins
+  + the user's existing project
 ```
 
-A module may contain smaller modules. Each module should remain understandable as one unit, expose a narrow boundary, and hide internal details from callers. At the bottom of the tree, deterministic logic should prefer simple pure functions where practical.
+The shared core owns development guidance. Host adapters only translate lifecycle events and feedback formats for tools such as Claude Code, Codex, Cursor, Gemini CLI, CodeBuddy, and others.
 
-The goal is not a particular folder layout. The goal is to let an AI narrow its reasoning from project -> module -> submodule -> small implementation unit instead of repeatedly understanding the whole repository.
+## Core behavior
 
-### Timed guidance instead of giant prompts
+APF should intervene at a small number of high-value moments rather than permanently loading a large rule manual.
 
-Do not put every rule into `AGENTS.md` and hope the model remembers it.
-
-Where the coding host supports lifecycle hooks, the framework should give the AI small instructions at the moment they become relevant, for example:
+The first prototype focuses on three semantic events:
 
 ```text
-Task starts
-  -> clarify and decompose the work
-Before the first code change
-  -> confirm module, plan, boundaries, and verification
-After changes
-  -> run focused checks and collect evidence
-Before the AI stops
-  -> perform structured review and required verification
+BEFORE_CHANGE
+  -> narrow the task, identify the affected area, split the work, choose verification
+
+ON_PROBLEM
+  -> stop blind retries, inspect evidence, form a small hypothesis, choose one diagnostic next step
+
+BEFORE_FINISH
+  -> review the actual change, run sufficient affected verification, continue if important work remains
 ```
 
-Complex instructions such as "review the code" should be decomposed into smaller checks the model can execute reliably, such as checking duplicate sources of truth, module-boundary leaks, mixed side effects, missing module tests, and stale documentation.
+See `prototype/` for the current host-neutral sample.
 
-### Mechanisms over model obedience
+## How projects should improve
 
-Rules describe desired behavior. Mechanisms should enforce everything that can be observed reliably.
+APF favors progressive improvement instead of up-front framework conversion.
 
-Examples include project-native tests, compiler/type checks, linters, architecture tests, Git hooks where useful, and GitHub Actions. Host hooks provide earlier feedback but must not be the only protection because hook support differs between coding assistants.
+When work touches an area, the AI should prefer leaving that area easier to understand and change than before, without expanding the task into unrelated cleanup.
 
-## Documentation direction
+Important code-shape principles include:
 
-Documentation is a primary part of the framework because coding models depend on repository context.
+- recursive modularity: large capabilities are composed from smaller coherent modules;
+- narrow boundaries: callers should not need to understand module internals;
+- pure deterministic logic where practical at lower levels;
+- explicit external effects;
+- one authoritative source for each fact;
+- module-oriented, affected verification.
 
-- `AGENTS.md` must remain small.
-- Detailed knowledge should be loaded on demand rather than placed in one permanent prompt.
-- Module-local documentation should travel with the module it explains.
-- One fact should have one authoritative source.
-- Facts derivable from code or tooling should not be manually duplicated in documents.
-- Current project state belongs in repository files; history belongs in Git.
+These are directions for development decisions, not requirements to rewrite an existing repository on installation.
 
-The exact documentation map and module README contract are still under design and should not be prematurely frozen.
+## Control model
 
-## Verification direction
+Natural-language guidance is useful when delivered at the right time. Mechanically observable requirements should additionally use project-native mechanisms where available, such as tests, type checks, linters, architecture checks, Git hooks, and CI.
 
-Verification should be organized around modules and affected behavior.
+Host hooks/plugins provide early guidance. They are not the sole correctness layer.
 
-The objective is not "minimal verification". It is **sufficient affected verification**: enough checks to cover the changed behavior and its reasonably affected dependencies, without running unrelated work by default.
+## Repository status
 
-## GitHub
+The current goal is a small working prototype of timed guidance before expanding the framework.
 
-Git and GitHub are first-class mechanisms:
+The existing Go scanner/graph code remains research material and is not the product core.
 
-- Git stores project history and change truth.
-- GitHub Actions provides model-independent automated gates.
-- Pull requests provide a natural change-review boundary when used.
-- Issues are for genuine tracked problems or collaboration, not as a duplicate architecture or internal state database.
+Read:
 
-## Framework source repository
-
-Everything outside `empty-project/` exists to design, test, and maintain the framework itself. Framework development source, experiments, tests, and documentation are not part of a user's project.
-
-The current Go scanner and graph code are framework-development research tools. They are not the product architecture and are not required by projects copied from `empty-project/`.
-
-See `docs/FOUNDATIONS.md` for durable constraints and `docs/HOST-HOOKS.md` for the current lifecycle-hook research snapshot.
+- `docs/FOUNDATIONS.md` — durable constraints;
+- `docs/DESIGN-STATUS.md` — current design state;
+- `docs/HOST-HOOKS.md` — host integration direction;
+- `prototype/README.md` — first small sample.
