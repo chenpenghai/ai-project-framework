@@ -1,0 +1,7 @@
+{
+  "name": "apf-prototype",
+  "version": "0.1.0",
+  "description": "Small lifecycle-guidance experiment for AI Project Framework.",
+  "keywords": ["ai-development", "hooks", "guidance"],
+  "hooks": "./hooks/hooks.json"
+}
