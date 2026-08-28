@@ -1,32 +1,105 @@
-# Coding Host Hook Research
+# Host Integration and Hooks
 
 Research snapshot: 2026-08-28.
 
-This document records the current host-integration hypothesis. It is not a promise that vendor APIs will remain unchanged. Verify official documentation again before implementing an adapter.
+Vendor APIs change quickly. Re-check official documentation before implementing each host adapter.
 
-## Why hooks matter
+## Purpose
 
-The framework should not depend on a model remembering a large permanent rule set.
+APF needs lifecycle access so it can give the coding AI a small instruction at the moment that instruction matters.
 
-The preferred control pattern is:
+The host integration is not the framework logic. It is only the bridge between a coding assistant and the shared APF core.
 
 ```text
-key lifecycle event
-  -> inject a small stage-specific instruction
-  -> require observable evidence
-  -> allow or block progression
+host event
+  -> thin adapter/plugin
+  -> shared APF semantic event
+  -> shared guidance
 ```
 
-Examples:
+## Product direction
 
-- task begins -> decompose the requested work,
-- first code-changing action -> require preparation/plan evidence,
-- after changes -> run relevant fast checks,
-- agent attempts to stop -> perform structured completion review and required verification.
+Prefer plugin/extension integration over placing many vendor-specific configuration directories in every user repository.
 
-## Emerging lifecycle vocabulary
+The desired model is:
 
-Across mainstream coding agents, the following Claude-style event names are increasingly common or easy to map to equivalent events:
+```text
+APF core
+├── shared guidance
+└── semantic events
+
+host adapters
+├── Claude adapter
+├── Codex adapter
+├── Cursor adapter
+├── Gemini adapter
+└── ...
+```
+
+Each adapter should be as thin as possible.
+
+It may translate:
+
+- event names;
+- event payloads;
+- tool/change classification;
+- blocking/continue semantics;
+- feedback returned to the model.
+
+It must not contain a copied version of the development rules.
+
+## No mandatory project installation
+
+APF activation must not require every project to contain `.claude/`, `.codex/`, `.cursor/`, `.gemini/`, `.apf/`, or similar framework-generated configuration.
+
+If a host requires project-local configuration and offers no better integration mechanism, that may be supported as a fallback, not treated as the universal architecture.
+
+Hosts with plugin/extension support should prefer an install-once adapter that can operate on whichever repository the coding assistant currently opens.
+
+## First prototype lifecycle
+
+Do not start with every lifecycle event exposed by every vendor.
+
+The first APF prototype uses three framework-level events:
+
+```text
+BEFORE_CHANGE
+ON_PROBLEM
+BEFORE_FINISH
+```
+
+### BEFORE_CHANGE
+
+Goal: intervene just before meaningful modification begins.
+
+Possible host signals include a pre-tool event for write/edit operations or an equivalent code-changing action.
+
+APF should inject the shared `before-change` guidance.
+
+### ON_PROBLEM
+
+Goal: intervene when the agent is getting stuck or evidence invalidates its current approach.
+
+This event may not map to one universal native hook. Adapters may infer it from host-visible signals such as:
+
+- tool/command failure;
+- test failure;
+- repeated failed attempts;
+- explicit model report that an assumption is wrong.
+
+Because inference confidence varies, the first implementation may treat this as guidance rather than a hard gate.
+
+### BEFORE_FINISH
+
+Goal: intervene before the agent declares the task complete.
+
+Possible host signals include `Stop`, task-complete, after-agent, or equivalent completion lifecycle events.
+
+Where the host permits it, APF should be able to return feedback that causes the model to continue when important work or verification remains.
+
+## Common host vocabulary
+
+Mainstream coding tools currently expose many comparable lifecycle concepts, often around names similar to:
 
 ```text
 SessionStart
@@ -37,138 +110,51 @@ Stop
 PreCompact
 ```
 
-The framework should use these names as its host-neutral vocabulary unless later research shows a better common denominator.
+Other hosts use different names such as `BeforeTool`, `AfterTool`, `AfterAgent`, or plugin-specific event identifiers.
 
-These names describe semantics, not a dependency on Claude Code.
+APF should map semantic equivalents rather than standardizing on one vendor's spelling.
 
-## Current compatibility picture
+## Compatibility strategy
 
-### Near-direct compatibility
-
-The following hosts currently expose the same or very similar lifecycle concepts and, in several cases, the same event names:
-
-- Claude Code
-- OpenAI Codex
-- CodeBuddy IDE
-- VS Code Agent / GitHub Copilot integrations
-- Kiro
-- Qwen Code
-- Augment Code
-- Cursor (similar names, often lower camel case)
-- Cline (tool hooks align closely; completion event naming differs)
-
-Important behavior for the framework is not exact spelling. It is whether the host can:
-
-1. observe the event,
-2. run project-controlled logic,
-3. block a code/tool action when required,
-4. return a reason/context to the coding model,
-5. on completion gates, cause the model to continue when work is incomplete.
-
-### Semantic adapters required
-
-Some hosts expose equivalent lifecycle points under different names or plugin APIs.
-
-Examples observed during research:
-
-- Gemini CLI: concepts such as `BeforeTool`, `AfterTool`, `AfterAgent`, plus model-level lifecycle hooks.
-- OpenCode: plugin events such as session creation and tool execution before/after.
-- Windsurf: more operation-specific pre/post hooks rather than the common generic vocabulary.
-
-These should be thin adapters to the framework lifecycle, not separate framework logic.
-
-### Partial/no full lifecycle
-
-Some tools may not expose a complete blocking lifecycle. Aider is a representative example: it provides strong automatic lint/test feedback loops but not the same general hook surface.
-
-For these hosts the framework must degrade gracefully to:
+Use three levels:
 
 ```text
-small repository instructions
-+ project-native tests/checks
-+ Git hooks where useful
-+ GitHub Actions
+1. Plugin/extension adapter
+   best integration, no normal project clutter
+
+2. Thin project-local adapter
+   only when the host requires it
+
+3. No lifecycle adapter
+   APF capabilities degrade; project-native tests/Git/CI still work
 ```
 
-The project must remain usable even without host hooks.
+A host does not need to implement every APF enhancement to be useful.
 
-## Proposed framework lifecycle
+## Guidance versus gates
 
-Do not freeze more lifecycle stages than needed yet. The currently useful semantic stages are:
+The first prototype should optimize for useful intervention, not maximum blocking.
 
-```text
-TASK_START
-BEFORE_CHANGE
-AFTER_CHANGE
-BEFORE_FINISH
-```
+Use a hard gate only when:
 
-These are framework concepts. They can be implemented using host events such as:
+1. the host reliably supports blocking/continuation;
+2. the condition is observable with high confidence;
+3. blocking improves development rather than adding ceremony.
 
-```text
-TASK_START
-  <- UserPromptSubmit / session-task equivalent
+Semantic architectural judgments should normally be guidance.
 
-BEFORE_CHANGE
-  <- PreToolUse on the first code-changing action
+## Shared source of truth
 
-AFTER_CHANGE
-  <- PostToolUse or change batching logic
+The prototype guidance text lives in `prototype/guidance/`.
 
-BEFORE_FINISH
-  <- Stop / agent-completion equivalent
-```
+Adapters should point to or package that shared source rather than recreate its content.
 
-`SessionStart` and `PreCompact` are supporting lifecycle events rather than necessarily separate workflow stages.
+The experiment succeeds if the same guidance can be delivered through different hosts with only thin translation code.
 
-## Critical design rule
+## Current research conclusion
 
-Do not make hooks merely print reminders.
+There is not yet one plugin binary/package format that runs unchanged in every coding assistant.
 
-Where a requirement matters, prefer:
+However, lifecycle concepts are similar enough that one APF core plus multiple thin adapters is practical.
 
-```text
-instruction
-+ evidence
-+ gate
-```
-
-For example, if a task requires a plan before coding, the reliable point is not "hope the model plans after reading AGENTS.md". The reliable point is the first attempted code-changing tool call:
-
-```text
-PreToolUse(first change)
-  -> preparation evidence missing
-  -> block
-  -> tell the model exactly what preparation is missing
-```
-
-Likewise, a generic request such as "review the code" should be decomposed at the completion gate into small review actions a weaker model can execute one by one.
-
-## Implementation constraints
-
-- Framework workflow logic must have one source of truth.
-- Host adapters only translate event names, payloads, and blocking/feedback formats.
-- Do not duplicate the rule set for each coding assistant.
-- Do not require every host to support every enhancement.
-- Do not require a consumer-side APF executable merely to implement hooks.
-- Host hooks are early-control mechanisms; project-native checks and CI remain the durable enforcement layer.
-
-## Sources to re-check before implementation
-
-Official documentation examined during the 2026-08-28 research included:
-
-- Claude Code hooks documentation
-- OpenAI Codex hooks documentation
-- CodeBuddy IDE hooks documentation
-- Cursor hooks documentation
-- VS Code / GitHub Copilot hooks documentation
-- Gemini CLI hooks documentation
-- Kiro hooks documentation
-- Qwen Code hooks documentation
-- Augment Code hooks documentation
-- OpenCode plugin/hook documentation
-- Cline hook documentation
-- Windsurf hooks documentation
-- Aider lint/test automation documentation
-
-Vendor capabilities change quickly. Adapter implementation should always be based on the current official specification, while this document preserves the framework-level conclusion: mainstream coding agents are converging on interceptable lifecycle events, and the framework should exploit that convergence.
+Open plugin standards may reduce adapter differences over time, but APF must not assume full cross-host Hook compatibility until vendors actually provide it.
