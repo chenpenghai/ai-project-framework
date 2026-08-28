@@ -168,4 +168,6 @@ Framework implementation complexity must never leak into consumer repositories. 
 
 The framework may dogfood itself as a normal software project, but that does not make its source tree part of a user's project.
 
-Consumer project output must be generated and regression-tested from the framework source rather than maintained as a second hand-edited source of truth.
+The consumer artifact is a static directory. It must not require a framework executable or framework runtime. The current coding model applies the framework through static project guidance and project-native mechanisms.
+
+The canonical consumer artifact lives directly in `empty-project/`; do not maintain a second generated copy of the same static files.
