@@ -16,9 +16,24 @@ The framework exists to serve the project, not the other way around. Its purpose
 - Verify only what the current change can affect whenever possible.
 - Automate framework behavior so users do not need to learn its internals.
 
+## Current prototype
+
+The first executable slice is intentionally small: a zero-dependency repository scanner and Structure Graph fact layer.
+
+```bash
+go run ./cmd/apf scan /path/to/repository
+go run ./cmd/apf scan --json /path/to/repository
+```
+
+It currently detects repository files, Git changed files, common project/package manifests, explicit `MODULE.md` declarations, and deterministic containment relationships. Unsupported languages degrade to the universal filesystem/Git baseline instead of failing.
+
+The Go implementation is an implementation detail of the framework tool itself; scanned projects do not need to use Go.
+
+See `docs/STRUCTURE-GRAPH.md` for the current graph semantics and `docs/FOUNDATIONS.md` for durable design constraints.
+
 ## Core direction
 
-The first implementation will focus on a small kernel:
+The implementation will grow only as evidence justifies it:
 
 1. Repository and project discovery.
 2. Structure graph: projects, modules, files, symbols, dependencies, and public boundaries.
