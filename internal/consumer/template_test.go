@@ -6,6 +6,9 @@ import (
 	"reflect"
 	"sort"
 	"testing"
+
+	"github.com/chenpenghai/ai-project-framework/internal/graph"
+	"github.com/chenpenghai/ai-project-framework/internal/scan"
 )
 
 func TestNewProjectCreatesOnlyFrameworkControlFiles(t *testing.T) {
@@ -47,6 +50,32 @@ func TestNewProjectCreatesOnlyFrameworkControlFiles(t *testing.T) {
 		if string(data) != wantContent {
 			t.Fatalf("%s content changed unexpectedly", rel)
 		}
+	}
+}
+
+func TestGeneratedProjectScansAsStructurallyEmpty(t *testing.T) {
+	target := filepath.Join(t.TempDir(), "consumer")
+	if err := NewProject(target); err != nil {
+		t.Fatal(err)
+	}
+
+	snapshot, err := (scan.Scanner{}).Scan(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	counts := map[graph.NodeKind]int{}
+	for _, node := range snapshot.Nodes {
+		counts[node.Kind]++
+	}
+	if counts[graph.NodeProject] != 0 {
+		t.Fatalf("empty consumer project detected %d projects", counts[graph.NodeProject])
+	}
+	if counts[graph.NodeModule] != 0 {
+		t.Fatalf("empty consumer project detected %d modules", counts[graph.NodeModule])
+	}
+	if counts[graph.NodeFile] != len(Files) {
+		t.Fatalf("empty consumer project detected %d files, want %d control files", counts[graph.NodeFile], len(Files))
 	}
 }
 
