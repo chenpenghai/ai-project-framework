@@ -30,20 +30,37 @@ Do not maintain separate rule sets for Claude, Codex, Cursor, Gemini, CodeBuddy,
 
 Enabling APF should do nothing destructive or ceremonial to the repository.
 
-Do not automatically:
+Do not automatically generate framework files, reorganize modules, migrate tests, or rewrite architecture.
 
-- generate `.apf/`;
-- create `AGENTS.md`;
-- reorganize modules;
-- create README files everywhere;
-- migrate tests;
-- rewrite architecture.
+When real work touches an area, APF should guide the AI toward a cleaner local result without unnecessarily widening task scope.
 
-Instead, when real work touches an area, APF should guide the AI toward a cleaner local result without unnecessarily widening task scope.
+## Core control model now established
 
-## First prototype
+Hooks only find coarse lifecycle moments. They are not precise enough by themselves to encode a complex developer workflow.
 
-The first prototype uses three semantic events:
+Inside a coarse event, APF should use a small deterministic loop:
+
+```text
+coarse host event
+  -> ordered small rule/step
+  -> AI works
+  -> structured result protocol
+  -> program validates flow/step/status/evidence
+  -> state advances or stays put
+  -> next small rule/step
+  -> ...
+  -> completion
+```
+
+The program owns sequence and state. The model owns semantic judgment and execution.
+
+Do not parse arbitrary natural-language keywords when a small explicit protocol can be required instead.
+
+A model declaration such as `done` is not proof by itself. Mechanically verifiable evidence should still be checked mechanically when possible.
+
+## First prototype lifecycle
+
+The first prototype still uses three semantic events:
 
 ```text
 BEFORE_CHANGE
@@ -51,43 +68,67 @@ ON_PROBLEM
 BEFORE_FINISH
 ```
 
-### BEFORE_CHANGE
+`BEFORE_CHANGE` and `ON_PROBLEM` remain simple one-shot guidance in the current Codex prototype.
 
-Before meaningful code modification, help the AI narrow the goal, identify the smallest affected area, split the work into small steps, and choose verification. Do not require a long formal plan.
+`BEFORE_FINISH` is now the first real APF state-machine loop because Codex `Stop` exposes `last_assistant_message`, allowing the adapter to observe the model's structured response to the previous APF instruction.
 
-### ON_PROBLEM
+The current loop is defined in:
 
-When there is explicit failure evidence, stop blind retries, state the observed failure, inspect the smallest useful evidence, form one narrow hypothesis, and choose one diagnostic action.
+```text
+prototype/flows/before-finish.json
+```
 
-### BEFORE_FINISH
+It contains:
 
-Before declaring completion, compare the actual result with the user's goal, review the changed area, run sufficient affected verification, update persistent project knowledge only when needed, and continue working if an important problem remains.
+```text
+check_goal
+  -> check_structure
+  -> check_verification
+  -> check_project_knowledge
+```
 
-## Codex adapter now exists
+The model reports each step using a structured `APF_RESULT` containing:
 
-`prototype/` is now a self-contained Codex plugin prototype.
+```text
+flow
+step
+status
+evidence
+```
+
+Invalid/missing protocol output does not advance. `needs_work` keeps the model on the current step. After the last step succeeds, APF requests the normal user-facing final answer and then allows Stop.
+
+A safety limit prevents an endless malformed-protocol loop.
+
+## Important host constraint
+
+Do not assume every lifecycle hook can run the same state machine.
+
+A loop needs a reliable return channel from the model to APF. Codex `Stop` currently provides this through `last_assistant_message`.
+
+For stages such as `BEFORE_CHANGE`, a future loop requires either:
+
+- an equivalent host event that exposes the model's response; or
+- an explicit APF reporting tool/protocol endpoint the model can call.
+
+Do not fake state progress from an event that cannot actually observe the model's result.
+
+## Codex adapter
+
+`prototype/` is a self-contained Codex plugin prototype.
 
 It maps:
 
 ```text
 UserPromptSubmit -> small preparation fallback
-PreToolUse       -> BEFORE_CHANGE
-PostToolUse      -> ON_PROBLEM when explicit failure is observable
-Stop             -> BEFORE_FINISH
+PreToolUse       -> one-shot BEFORE_CHANGE
+PostToolUse      -> one-shot ON_PROBLEM for explicit failures
+Stop             -> multi-step BEFORE_FINISH loop
 ```
 
-The adapter reads the shared guidance files rather than copying their content.
+Turn state lives in Codex `PLUGIN_DATA`; the user's repository is not framework state storage.
 
-Turn state lives in Codex `PLUGIN_DATA`; the user's repository is not used as framework state storage.
-
-The prototype intentionally fails open if its own hook script errors.
-
-## Known prototype limits
-
-- Hook coverage is a host capability, not a complete security/enforcement boundary.
-- `ON_PROBLEM` currently reacts only to explicit structured failure signals; it does not guess from arbitrary output text.
-- The first version uses Python for the command hook and therefore currently assumes a Python 3 command is available.
-- Windows Codex hook command handling has had recent path/quoting bugs; real Windows testing is required before treating the adapter as portable.
+The hook script intentionally fails open if its own code crashes.
 
 ## Code direction retained
 
@@ -109,16 +150,18 @@ Do not return to these by default:
 - one separate framework rule set per coding assistant;
 - mandatory multi-model review;
 - framework-wide cleanup during unrelated tasks;
-- GitHub Issues as duplicate internal state.
+- GitHub Issues as duplicate internal state;
+- advancing workflow state by guessing from arbitrary model prose.
 
 ## Current design frontier
 
-Do not add more framework concepts yet.
+Do not add another host yet.
 
-Next, run the Codex prototype in real coding sessions and observe only three things:
+First validate the APF Loop itself in real Codex work:
 
-1. Does the before-change interruption make the model narrow and plan better without becoming annoying?
-2. Does problem guidance reduce blind retries?
-3. Does the finish interruption catch real omissions often enough to justify its cost?
+1. Does the model reliably follow the structured return protocol?
+2. Are the small review steps useful, or merely repetitive?
+3. Does `needs_work` actually cause the model to fix omissions before advancing?
+4. Does the extra loop improve final quality enough to justify the added turns?
 
-Use those observations to change the three guidance steps before adding more hosts or lifecycle stages.
+Only after those answers are known should we generalize the loop to other lifecycle stages or hosts.
