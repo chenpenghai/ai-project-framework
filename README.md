@@ -1,78 +1,35 @@
-# AI Project Framework
+# 项目操作系统模版
 
-AI Project Framework (APF) is a guidance layer for AI-assisted software development.
+`os_version: 2`
 
-The AI remains the worker. APF intervenes at useful moments, turns broad engineering behavior into small executable actions, and helps projects improve while real work is being done.
+给新项目用的 **Agent 工作系统**：入口、规则、文档归属、当前状态、可选领域空壳。
 
-## Product direction
+不是业务脚手架。不带 React / Fastify / 数据库。不绑 Codex、Claude、Cursor、Copilot 或任何模型。
 
-APF is **not an empty-project template** and does not require a project to adopt a special directory layout before it can be used.
+## 新项目怎么用
 
-A new project and an existing project are both valid starting points.
+1. 用本仓库 GitHub Template 创建（Settings → Template repository），或 clone 后改 remote。
+2. 重写这四份：**`README.md` 产品段**、`docs/product/PRODUCT.md`、`docs/architecture/ARCHITECTURE.md`、`docs/work/CURRENT.md`；同步 `.project/state.json`。
+3. 需要设计 / 数据 / 安全 / 支付 / 分析 / 报告时，从 `modules/` 拷到 `docs/`，登记进 `.project/documents.json`。
+4. 跑 `node scripts/check-project.mjs`。
+5. **禁止让 AI 重建文档系统、队列、Work Unit、每工具一份规则。**
 
-Installing/enabling APF should not automatically create files, reorganize directories, or perform a framework migration. Project structure should change only when the current development task provides a good reason to improve it.
+## 本仓库自己
 
-The intended product shape is:
+本仓的产品就是这套 OS。改 OS 时走同一套循环；不要往这里塞业务项目。
 
-```text
-shared APF core
-  + thin host adapters/plugins
-  + the user's existing project
-```
-
-The shared core owns development guidance. Host adapters only translate lifecycle events and feedback formats for tools such as Claude Code, Codex, Cursor, Gemini CLI, CodeBuddy, and others.
-
-## Core behavior
-
-APF should intervene at a small number of high-value moments rather than permanently loading a large rule manual.
-
-The first prototype focuses on three semantic events:
+## 目录
 
 ```text
-BEFORE_CHANGE
-  -> narrow the task, identify the affected area, split the work, choose verification
-
-ON_PROBLEM
-  -> stop blind retries, inspect evidence, form a small hypothesis, choose one diagnostic next step
-
-BEFORE_FINISH
-  -> review the actual change, run sufficient affected verification, continue if important work remains
+AGENTS.md                         Agent 入口（指针，不是百科）
+docs/engineering/ENGINEERING.md   规则唯一权威
+docs/product/PRODUCT.md           产品事实
+docs/architecture/ARCHITECTURE.md 架构现状（只写已落地的）
+docs/work/CURRENT.md              现在在做什么
+docs/decisions/                   ADR（不改写历史）
+.project/                         机器可读 registry
+modules/                          未启用的领域空壳
+scripts/check-project.mjs         registry 校验
 ```
 
-See `prototype/` for the current host-neutral sample.
-
-## How projects should improve
-
-APF favors progressive improvement instead of up-front framework conversion.
-
-When work touches an area, the AI should prefer leaving that area easier to understand and change than before, without expanding the task into unrelated cleanup.
-
-Important code-shape principles include:
-
-- recursive modularity: large capabilities are composed from smaller coherent modules;
-- narrow boundaries: callers should not need to understand module internals;
-- pure deterministic logic where practical at lower levels;
-- explicit external effects;
-- one authoritative source for each fact;
-- module-oriented, affected verification.
-
-These are directions for development decisions, not requirements to rewrite an existing repository on installation.
-
-## Control model
-
-Natural-language guidance is useful when delivered at the right time. Mechanically observable requirements should additionally use project-native mechanisms where available, such as tests, type checks, linters, architecture checks, Git hooks, and CI.
-
-Host hooks/plugins provide early guidance. They are not the sole correctness layer.
-
-## Repository status
-
-The current goal is a small working prototype of timed guidance before expanding the framework.
-
-The existing Go scanner/graph code remains research material and is not the product core.
-
-Read:
-
-- `docs/FOUNDATIONS.md` — durable constraints;
-- `docs/DESIGN-STATUS.md` — current design state;
-- `docs/HOST-HOOKS.md` — host integration direction;
-- `prototype/README.md` — first small sample.
+核心永远在 `docs/` 且已登记。`modules/` 不是权威。

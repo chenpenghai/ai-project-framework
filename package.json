@@ -1,0 +1,10 @@
+{
+  "name": "ai-project-framework",
+  "private": true,
+  "version": "2.0.0",
+  "description": "Lightweight project operating system template for AI-assisted development",
+  "type": "module",
+  "scripts": {
+    "check": "node scripts/check-project.mjs"
+  }
+}
