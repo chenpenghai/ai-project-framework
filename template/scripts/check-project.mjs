@@ -160,6 +160,39 @@ if (existsSync(adrDir)) {
   }
 }
 
+const productPath = join(root, "docs/product/PRODUCT.md");
+const productText = existsSync(productPath) ? readFileSync(productPath, "utf8") : "";
+if (productText && !/^## 当前未决事项\s*$/m.test(productText)) {
+  errors.push("docs/product/PRODUCT.md must have heading ## 当前未决事项 (sole OPEN list)");
+}
+
+const walkMd = (dir, acc = []) => {
+  if (!existsSync(dir)) return acc;
+  for (const name of readdirSync(dir)) {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) walkMd(p, acc);
+    else if (name.endsWith(".md")) acc.push(p);
+  }
+  return acc;
+};
+
+for (const file of walkMd(join(root, "docs"))) {
+  const rel = file.slice(root.length + 1).replaceAll("\\", "/");
+  if (rel === "docs/product/PRODUCT.md") continue;
+  const text = readFileSync(file, "utf8");
+  if (/^## 当前未决事项\s*$/m.test(text)) {
+    errors.push(`${rel} must not have ## 当前未决事项; product OPEN list lives only in docs/product/PRODUCT.md`);
+  }
+}
+
+const currentPath = join(root, "docs/work/CURRENT.md");
+if (existsSync(currentPath)) {
+  const currentText = readFileSync(currentPath, "utf8");
+  if (!currentText.includes("docs/product/PRODUCT.md")) {
+    errors.push("docs/work/CURRENT.md must point OPEN list to docs/product/PRODUCT.md, not copy it");
+  }
+}
+
 for (const name of ["CLAUDE.md", ".github/copilot-instructions.md"]) {
   const path = join(root, name);
   if (!existsSync(path) || !statSync(path).isFile()) continue;

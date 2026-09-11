@@ -4,19 +4,22 @@
 
 ## 阶段
 
-新产品，待填写。
+（一句。例如：新产品，正在填写定义。）
 
 ## 当前目标
+
+（同一时间只有一个主目标。）
 
 填写 `docs/product/PRODUCT.md`、`docs/architecture/ARCHITECTURE.md`、本文和 `.project/state.json`。
 
 ## 已完成
 
-- 从 ai-project-framework 的 `template/` 创建仓库
+- 从空白项目模板的 `template/` 创建仓库
 
 ## 阻塞 / OPEN
 
 产品未决事项的权威清单只在 `docs/product/PRODUCT.md`，此处不复制。
+（这里只写挡住当前目标的事。）
 
 ## 下一阶段
 

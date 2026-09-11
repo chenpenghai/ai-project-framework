@@ -5,7 +5,7 @@
 
 ## 当前结构
 
-已落地的是工作循环与文档归属，不是业务系统。
+（只写已经存在的目录和关系。没有的不要画成现状。）
 
 ```text
 AGENTS.md + ENGINEERING.md     工作循环
@@ -19,4 +19,5 @@ scripts/check-project.mjs      registry 校验
 
 ## 边界
 
-产品事实写在 `docs/product/PRODUCT.md`。未决定的技术选型标 OPEN。
+- 产品事实：`docs/product/PRODUCT.md`
+- 未决定的技术选型：标 OPEN，或写 ADR 草稿

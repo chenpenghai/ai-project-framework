@@ -3,10 +3,10 @@
   "phase": "TEMPLATE",
   "phase_title": "操作系统模版源",
   "current_work": {
-    "title": "维护项目操作系统模版",
-    "goal": "保持 OS v2 可复制。本地生成 template/ 给用户拷走，不要在本仓做产品功能。"
+    "title": "把文档系统做到用户拷走就能用",
+    "goal": "收口 template/、补 OPEN 双写校验、槽位改成可填结构。不要在本仓做产品功能。"
   },
-  "next": "用户拷走 template/ 后重写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
+  "next": "用户拷走 template/ 后按槽位填写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
   "last_updated": "2026-09-11",
   "notes": [
     "os_version 对应 docs/decisions/0001-lightweight-project-os.md。",

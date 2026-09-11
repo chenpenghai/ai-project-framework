@@ -1,51 +1,20 @@
-# 项目操作系统模版
+# 空白项目模板
 
-`os_version: 2`
+和 AI 开新项目，它几乎每次都会自己发明一套文档、规则，有时再加一个任务队列。换个仓库不一样，换个工具又重写一遍。
 
-> **新项目不要用仓库根目录。只复制 `template/` 文件夹。**
+这份模板把工作系统一次性放进仓库：一个入口、一份规则、事实有归属、用脚本检查有没有写坏。不是 React / 后端 / 数据库脚手架。
 
-## 怎么复制
+换 Claude Code、Codex、Grok、CodeBuddy、ZCode、OpenCode、Cursor 都能读同一套。Gemini CLI 除外。
 
-1. **下载 zip（不用 git）**  
-   打开这个链接会只打包 `template/`：[下载 template 文件夹](https://download-directory.github.io/?url=https://github.com/chenpenghai/ai-project-framework/tree/main/template)
+它具体挡住这些事：
 
-2. **一条命令**
+- 禁止再设计第二套文档系统和入口文件
+- 禁止给每个 AI 工具各写一份完整规则，宿主入口只许指向 `AGENTS.md`
+- 没决定的事标 OPEN，不许写进代码或文档当成事实
+- 支付、报告等文档用到再启用；空的权威文件比没有更有害
+- 插话先做，不做那种会被插话绕开的任务队列
+- 校验脚本检查文档死链、归属对不上、ADR 撞号，不靠模型自觉
 
-   ```text
-   npx degit chenpenghai/ai-project-framework/template my-project
-   ```
+## 怎么用
 
-3. **已经 clone 了整仓**  
-   把 `template/` 拷到别处，在新目录里执行 `git init`。
-
-复制后先填这四份：`docs/product/PRODUCT.md`、`docs/architecture/ARCHITECTURE.md`、`docs/work/CURRENT.md`、`.project/state.json`。然后跑 `node scripts/check-project.mjs`。
-
-给 AI 的第一句话：
-
-> 这是从 ai-project-framework 的 template/ 创建的项目。禁止重建文档系统、禁止发明 queue / Work Unit / 每工具一份规则。只改这四份：`docs/product/PRODUCT.md`、`docs/architecture/ARCHITECTURE.md`、`docs/work/CURRENT.md`、`.project/state.json`。需要设计/数据/安全/支付/分析/报告时，从 `modules/` 拷到 `docs/` 并登记进 `.project/documents.json`。改完跑 `node scripts/check-project.mjs`。
-
-浏览目录：[GitHub 上的 template/](https://github.com/chenpenghai/ai-project-framework/tree/main/template)
-
-## 本仓库自己
-
-本仓的产品就是这套 OS。根目录是咱们的源，不要往这里塞业务项目。
-
-提交时会自动生成 `template/` 并一起提交。GitHub Action 只校验，不生成。
-
-## 目录
-
-```text
-AGENTS.md                         Agent 入口（指针，不是百科）
-docs/engineering/ENGINEERING.md   规则唯一权威
-docs/product/PRODUCT.md           产品事实（本仓：OS 模版）
-docs/architecture/ARCHITECTURE.md 架构现状（只写已落地的）
-docs/work/CURRENT.md              现在在做什么
-docs/decisions/                   ADR（不改写历史）
-.project/                         机器可读 registry
-modules/                          未启用的领域空壳
-scripts/check-project.mjs         registry 校验
-scripts/build-template.mjs        生成本地 template/
-template/                         用户拷走的干净实例
-```
-
-核心永远在 `docs/` 且已登记。`modules/` 不是权威。
+只需要 [下载 template 文件夹](https://download-directory.github.io/?url=https://github.com/chenpenghai/ai-project-framework/tree/main/template)，让 AI 在里面干活。别的不用管。
