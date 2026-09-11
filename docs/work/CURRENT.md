@@ -5,7 +5,7 @@
 
 ## 阶段
 
-模版源：OS v2 已落地。
+模版源：OS v2。
 
 ## 当前目标
 
@@ -13,7 +13,8 @@
 
 ## 已完成
 
-- 用轻量 Current Work 模型替换旧 APF（插件/队列/扫描器）
+- 用轻量 Current Work 模型替换旧 APF（插件 / 队列 / 扫描器 / Go 宿主）
+- 删除旧代码：`.agents/`、`cmd/`、`internal/`、`prototype/`
 - 核心权威文档 + registry + 校验脚本
 - 领域文档改为 `modules/` 可选空壳
 

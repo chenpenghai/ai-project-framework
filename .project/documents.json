@@ -17,7 +17,7 @@
       "id": "engineering",
       "path": "docs/engineering/ENGINEERING.md",
       "kind": "knowledge",
-      "authority": ["code-rules", "doc-rules", "work-process"]
+      "authority": ["work-process"]
     },
     {
       "id": "current-work",

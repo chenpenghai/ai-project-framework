@@ -7,7 +7,7 @@
     "goal": "保持 OS v2 可复制。新业务项目从本仓库创建，不要在本仓做产品功能。"
   },
   "next": "新产品：重写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
-  "last_updated": "2026-09-09",
+  "last_updated": "2026-09-11",
   "notes": [
     "os_version 对应 docs/decisions/0001-lightweight-project-os.md。",
     "当前工作是主要目标，不是锁死任务。",

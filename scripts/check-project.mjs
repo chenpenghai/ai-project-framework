@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,7 +53,10 @@ const routes = json(".project/context-routes.json");
 if (state) {
   say(state.os_version === 2, `state.json os_version must be 2, got ${state.os_version}`);
   say(typeof state.phase === "string" && state.phase.length > 0, "state.json missing phase");
-  say(state.current_work && typeof state.current_work.title === "string", "state.json missing current_work.title");
+  say(
+    state.current_work && typeof state.current_work.title === "string",
+    "state.json missing current_work.title",
+  );
   say(typeof state.last_updated === "string", "state.json missing last_updated");
 }
 
@@ -67,15 +70,20 @@ if (documents?.documents) {
     if (docsById.has(doc.id)) errors.push(`duplicate document id: ${doc.id}`);
     docsById.set(doc.id, doc);
     if (!doc.path) errors.push(`document ${doc.id} missing path`);
-    else if (!existsSync(join(root, doc.path))) errors.push(`document ${doc.id} path does not exist: ${doc.path}`);
+    else if (!existsSync(join(root, doc.path))) {
+      errors.push(`document ${doc.id} path does not exist: ${doc.path}`);
+    }
+    if (doc.path && doc.path.startsWith("modules/")) {
+      errors.push(`document ${doc.id} path is under modules/ (not authority until copied to docs/)`);
+    }
   }
   for (const id of ["product", "architecture", "engineering", "current-work"]) {
     say(docsById.has(id), `documents.json missing core id: ${id}`);
   }
 }
 
+const factIds = new Set();
 if (ownership?.facts) {
-  const factIds = new Set();
   for (const fact of ownership.facts) {
     if (!fact.id) {
       errors.push("ownership.json fact missing id");
@@ -87,6 +95,16 @@ if (ownership?.facts) {
       errors.push(
         `fact ${fact.id} knowledge_owner "${fact.knowledge_owner}" is not a documents.json id`,
       );
+    }
+  }
+}
+
+if (documents?.documents) {
+  for (const doc of documents.documents) {
+    for (const auth of doc.authority ?? []) {
+      if (!factIds.has(auth)) {
+        errors.push(`document ${doc.id} authority "${auth}" is not an ownership fact id`);
+      }
     }
   }
 }
@@ -128,6 +146,18 @@ if (existsSync(adrDir)) {
       errors.push(`duplicate ADR number ${match[1]}: ${numbers.get(match[1])} and ${name}`);
     }
     numbers.set(match[1], name);
+  }
+}
+
+for (const name of ["CLAUDE.md", ".github/copilot-instructions.md"]) {
+  const path = join(root, name);
+  if (!existsSync(path) || !statSync(path).isFile()) continue;
+  const text = readFileSync(path, "utf8");
+  if (!/AGENTS\.md/.test(text)) {
+    errors.push(`${name} must point to AGENTS.md (one-line pointer, not a second rulebook)`);
+  }
+  if (text.length > 400) {
+    errors.push(`${name} is too long; keep a one-line pointer to AGENTS.md`);
   }
 }
 

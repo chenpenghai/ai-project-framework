@@ -19,6 +19,8 @@
 
 - 每种正式事实一个 Knowledge Owner，见 `.project/ownership.json`。
 - 路径与登记见 `.project/documents.json`。未登记的文件不是权威。
+- `documents.json` 的 `id` 是主键。`ownership.json` 的 `knowledge_owner` 必须是某个 `id`。
+- `documents[].authority` 里的每个名字必须是 `ownership.json` 的 fact `id`。
 - `modules/` 下的空壳未拷贝、未登记前不是权威。
 - README、注释、聊天记录不得形成第二套规则。
 - 重大决定进 `docs/decisions/`。Accepted 的 ADR 不改写，由新 ADR 按**文件路径** supersede。
