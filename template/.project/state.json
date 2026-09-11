@@ -1,0 +1,15 @@
+{
+  "os_version": 2,
+  "phase": "NEW",
+  "phase_title": "新产品，待填写",
+  "current_work": {
+    "title": "填写产品定义",
+    "goal": "重写 PRODUCT.md、ARCHITECTURE.md、CURRENT.md 和本文件，再开始做功能。"
+  },
+  "next": "按需从 modules/ 拷贝领域文档并登记",
+  "last_updated": "YYYY-MM-DD",
+  "notes": [
+    "当前工作是主要目标，不是锁死任务。",
+    "产品 OPEN 清单只写在 docs/product/PRODUCT.md。"
+  ]
+}

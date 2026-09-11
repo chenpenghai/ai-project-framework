@@ -1,0 +1,3 @@
+#!/bin/sh
+node scripts/build-template.mjs || exit 1
+git add template

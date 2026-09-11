@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "documents": [
+    {
+      "id": "product",
+      "path": "docs/product/PRODUCT.md",
+      "kind": "knowledge",
+      "authority": ["product-definition"]
+    },
+    {
+      "id": "architecture",
+      "path": "docs/architecture/ARCHITECTURE.md",
+      "kind": "knowledge",
+      "authority": ["architecture-overview"]
+    },
+    {
+      "id": "engineering",
+      "path": "docs/engineering/ENGINEERING.md",
+      "kind": "knowledge",
+      "authority": ["work-process"]
+    },
+    {
+      "id": "current-work",
+      "path": "docs/work/CURRENT.md",
+      "kind": "status",
+      "authority": []
+    }
+  ]
+}

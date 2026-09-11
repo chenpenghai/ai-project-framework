@@ -1,0 +1,31 @@
+{
+  "version": 2,
+  "always_read": ["engineering"],
+  "routes": [
+    {
+      "task": "product",
+      "required": ["product"],
+      "optional": ["architecture"]
+    },
+    {
+      "task": "architecture",
+      "required": ["architecture"],
+      "optional": ["product"]
+    },
+    {
+      "task": "frontend",
+      "required": ["product", "engineering"],
+      "optional": ["architecture"]
+    },
+    {
+      "task": "backend",
+      "required": ["architecture", "engineering"],
+      "optional": ["product"]
+    },
+    {
+      "task": "documentation",
+      "required": ["engineering"],
+      "optional": ["product", "architecture"]
+    }
+  ]
+}

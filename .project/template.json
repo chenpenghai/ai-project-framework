@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "out": "template",
+  "copy": [
+    "AGENTS.md",
+    "CLAUDE.md",
+    ".gitignore",
+    ".github/copilot-instructions.md",
+    "docs/engineering/ENGINEERING.md",
+    "docs/decisions/README.md",
+    "modules",
+    "scripts/check-project.mjs",
+    ".project/context-routes.json",
+    ".project/documents.json",
+    ".project/ownership.json"
+  ],
+  "slots": {
+    "README.md": "scripts/template-slots/README.md",
+    "package.json": "scripts/template-slots/package.json",
+    "docs/product/PRODUCT.md": "scripts/template-slots/PRODUCT.md",
+    "docs/architecture/ARCHITECTURE.md": "scripts/template-slots/ARCHITECTURE.md",
+    "docs/work/CURRENT.md": "scripts/template-slots/CURRENT.md",
+    ".project/state.json": "scripts/template-slots/state.json",
+    ".github/workflows/check-project.yml": "scripts/template-slots/check-project.yml"
+  }
+}

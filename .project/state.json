@@ -4,9 +4,9 @@
   "phase_title": "操作系统模版源",
   "current_work": {
     "title": "维护项目操作系统模版",
-    "goal": "保持 OS v2 可复制。新业务项目从本仓库创建，不要在本仓做产品功能。"
+    "goal": "保持 OS v2 可复制。本地生成 template/ 给用户拷走，不要在本仓做产品功能。"
   },
-  "next": "新产品：重写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
+  "next": "用户拷走 template/ 后重写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
   "last_updated": "2026-09-11",
   "notes": [
     "os_version 对应 docs/decisions/0001-lightweight-project-os.md。",

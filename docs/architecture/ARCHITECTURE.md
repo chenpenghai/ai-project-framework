@@ -9,11 +9,13 @@
 ```text
 AGENTS.md + ENGINEERING.md     工作循环
         ↓
-.project/                      状态、文档登记、归属、路由
+.project/                      状态、文档登记、归属、路由、template.json
         ↓
 docs/                          已启用的权威知识
 modules/                       未启用空壳（非权威）
 scripts/check-project.mjs      registry 校验
+scripts/build-template.mjs     本地生成 template/
+template/                      用户拷走的实例（生成物）
 ```
 
 ## 边界
@@ -30,5 +32,6 @@ scripts/check-project.mjs      registry 校验
 | `.project/documents.json` | 权威文档路径；`id` 是主键 |
 | `.project/ownership.json` | `knowledge_owner` 必须是 `documents.json` 的 `id` |
 | `.project/context-routes.json` | 按任务读的最小文档集 |
+| `.project/template.json` | 生成 `template/` 的拷贝/槽位/排除清单 |
 
 `ownership.json` 的 `knowledge_owner` 与 `documents.json` 的 `id` 必须能对上。对不上就是 registry 损坏。

@@ -5,6 +5,7 @@
   "description": "Lightweight project operating system template for AI-assisted development",
   "type": "module",
   "scripts": {
-    "check": "node scripts/check-project.mjs"
+    "check": "node scripts/check-project.mjs",
+    "build-template": "node scripts/build-template.mjs"
   }
 }
