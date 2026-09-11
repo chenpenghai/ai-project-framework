@@ -22,11 +22,15 @@
 - `documents.json` 的 `id` 是主键。`ownership.json` 的 `knowledge_owner` 必须是某个 `id`。
 - `documents[].authority` 里的每个名字必须是 `ownership.json` 的 fact `id`。
 - `modules/` 下的空壳未拷贝、未登记前不是权威。
+- README 给人看用法；`AGENTS.md` 给 AI 当入口。正式事实只在 Knowledge Owner 文档，不双写。
 - README、注释、聊天记录不得形成第二套规则。
+- `docs/decisions/README.md` 只说明 ADR 格式，不写产品/架构事实。
+- 新权威文件必须先写入 `documents.json` 且有 knowledge_owner。没有新的 owner 映射就不必改 `ownership.json`。不准靠拆文件逃避登记。
+- `docs/` 下除已登记路径、`docs/decisions/NNNN-slug.md`、`docs/decisions/README.md` 以外的 markdown，校验失败。
 - 重大决定进 `docs/decisions/`。Accepted 的 ADR 不改写，由新 ADR 按**文件路径** supersede。
 - ADR 编号 `NNNN-slug.md`，NNNN 全局唯一，禁止两个 `0001`。
 
-改了正式事实，同步对应权威文档再继续。纯样式/文案不必。
+改了正式事实却没改对应权威文档 = 未完成。纯样式/文案不必改文档。
 
 ## 工作循环
 

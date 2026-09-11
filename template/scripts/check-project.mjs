@@ -176,8 +176,22 @@ const walkMd = (dir, acc = []) => {
   return acc;
 };
 
+const relFromRoot = (abs) => abs.slice(root.length + 1).replaceAll("\\", "/");
+const allowedDocsMd = new Set(["docs/decisions/README.md"]);
+if (documents?.documents) {
+  for (const doc of documents.documents) {
+    if (doc.path) allowedDocsMd.add(doc.path.replaceAll("\\", "/"));
+  }
+}
+
 for (const file of walkMd(join(root, "docs"))) {
-  const rel = file.slice(root.length + 1).replaceAll("\\", "/");
+  const rel = relFromRoot(file);
+  const inDecisions = rel.startsWith("docs/decisions/");
+  const adrName = inDecisions ? rel.slice("docs/decisions/".length) : "";
+  const allowedAdr = inDecisions && !adrName.includes("/") && /^\d{4}-.+\.md$/.test(adrName);
+  if (!allowedDocsMd.has(rel) && !allowedAdr) {
+    errors.push(`unregistered docs file: ${rel}`);
+  }
   if (rel === "docs/product/PRODUCT.md") continue;
   const text = readFileSync(file, "utf8");
   if (/^## 当前未决事项\s*$/m.test(text)) {

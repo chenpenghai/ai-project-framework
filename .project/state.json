@@ -3,8 +3,8 @@
   "phase": "TEMPLATE",
   "phase_title": "操作系统模版源",
   "current_work": {
-    "title": "把文档系统做到用户拷走就能用",
-    "goal": "收口 template/、补 OPEN 双写校验、槽位改成可填结构。不要在本仓做产品功能。"
+    "title": "加固文档执行",
+    "goal": "多余 md 校验失败；按 always_read 和路由读；改了正式事实没改权威文档算未完成。"
   },
   "next": "用户拷走 template/ 后按槽位填写 PRODUCT / ARCHITECTURE / CURRENT / state，按需启用 modules/",
   "last_updated": "2026-09-11",
